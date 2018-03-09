@@ -13,6 +13,8 @@ cam_matrix = np.matrix( "715.523 0 320;" +
                         "0 715.523 240;" + 
                         "0 0 1")
 dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
+episilon_scale = 1
+position_scaleRatio = 0.04026 # pysically measured via camera to convert to cm
 
 # ============================ Param =========================================
 
@@ -62,7 +64,7 @@ def blobIni():
 
     return cv2.SimpleBlobDetector_create(params)
 
-# can use opencv func
+# can use opencv func (cv2.fitline)
 #find whether 8 coor or more of the center circles lies on the same line, return bolean 
 def lineFitting(keypoints):
     blobNum = len(keypoints)
@@ -131,6 +133,7 @@ def is_Point_inContour(x, y, cnt):
 #filter undesired contours, return list index of desired contours
 def contours_filtering(contours, hierarchy):
     contourIndex_list = []
+    
     idx = 0
     if len(contours) != 0:
         for cnt, h in zip(contours, hierarchy[0]):
@@ -141,10 +144,15 @@ def contours_filtering(contours, hierarchy):
             if (area > areaThresh):
                 
                 #hierichy filtering
-                if h[2] != -1: #make sure contours with child in hiera
-                    contourIndex_list.append(idx)
-            
+                if h[2] == -1: #find all child contours (with no children) in hiera!
+                    # because cnt of parent is same cnt, so need to find grandparents of child(2 hierachy up of the circles cnt)
+                    filtered_index = hierarchy[0][h[3]][3]
+
+                    if filtered_index not in contourIndex_list:
+                        contourIndex_list.append(filtered_index)
+
             idx += 1
+
     return contourIndex_list
 
 
@@ -192,7 +200,7 @@ def persTransform(corners_approx, frame):
 
 
 #draw final vitag contours
-def drawContours(newContours, viTagContour, corners_approx):
+def drawContours(newContours, viTagContours, corners_approx):
     background = np.zeros((height, width,3), np.uint8)
     
     index = -1
@@ -201,21 +209,22 @@ def drawContours(newContours, viTagContour, corners_approx):
     color2 = (255, 255, 255)
     cv2.drawContours(background, newContours, index, color1, thickness)  #filtered background contours as pink
 
-    if viTagContour != None:
+    if viTagContours != None:
 
-        cv2.drawContours(background, [viTagContour], index, color2, 5)   #vitag box label as white 
-        cv2.drawContours(background, corners_approx, -1, (0, 255, 0), 10)
+        cv2.drawContours(background, viTagContours, index, color2, 5)   #vitag box label as white 
+        for corners in corners_approx:
+            cv2.drawContours(background, corners, -1, (0, 255, 0), 10)
     
-    cv2.imshow("Contours",background)
+    return background
 
 
 # find the valid 4 sided vitag contour and return vitag contour
 def create_viTagContours(contours, contourIndex_list, keypoints ):
     blobNum = len(keypoints)
-    viTagContour = None
+    viTagContours = []
     viTagContour_size = 999999
-    keypointslist_inContour = [] #keypoints coor exist in contour
-    keypointslist_inVitag = []  #confirmed keypoints coor in viTag
+    keypointslist_inContour = [] #keypoints coor exist in one contour
+    keypointslist_inVitags = []  #confirmed keypoints coor in viTag
 
     if blobNum < 8:         #didnt reach min number of blob for vitag Detection
         return (None, None)
@@ -238,16 +247,16 @@ def create_viTagContours(contours, contourIndex_list, keypoints ):
         if circleTag_count == circlesNum:
             #update the smaller valid contour as vitag Contour
             # if viTagContour_size > cv2.contourArea(cnt):
-            viTagContour = cnt
-            keypointslist_inVitag = keypointslist_inContour
+            viTagContours.append(cnt)
+            keypointslist_inVitags.append(keypointslist_inContour)
         keypointslist_inContour = []
 
-    return (viTagContour, keypointslist_inVitag)
+    return (viTagContours, keypointslist_inVitags)
     # return viTagContour
 
 #compute position and pose of the vitag
 def positionEstimation(corners_approx, im):
-        # ------------------------- rearrange corners matrix ---------------------
+    # ------------------------- rearrange corners matrix ---------------------
     pts = corners_approx.reshape(4, 2)
     image_points = np.zeros((4, 2), dtype = "float32")
     # the top-left point has the smallest sum whereas the
@@ -286,10 +295,9 @@ def positionEstimation(corners_approx, im):
     # We use this to draw a line sticking out of the nose
 
     rotation_vector = -rotation_vector
-    # translation_vector = -translation_vector
 
-    # ------------------------ plot on matploty  ------------------------------------
-    currentTime = time.time() - startTime
+    ## ------------------------ plot on matploty  ------------------------------------
+    # currentTime = time.time() - startTime
     # ==> Rotation
     # plt.scatter(currentTime, rotation_vector[0]*180/3.14, color = 'red')    #pitch axis -- havin problem
     # plt.scatter(currentTime,  rotation_vector[1]*180/3.14, color = 'blue')  # yaw axis -- interested
@@ -300,21 +308,7 @@ def positionEstimation(corners_approx, im):
     # plt.scatter(currentTime, translation_vector[2], color = 'green')  #z
     # plt.pause(0.001)
 
-    return (rotation_vector, translation_vector) #yaw
-
-    # rotation_vector[0] = 0  # assume no pitch
-
-    (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector, translation_vector, cam_matrix, dist_coeffs)
-
-    for p in image_points:
-        cv2.circle(im, (int(p[0]), int(p[1])), 3, (0,0,255), -1)
-
-    p1 = ( int(image_points[0][0]), int(image_points[0][1]))
-    p2 = ( int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
-    cv2.line(im, p1, p2, (255,0,0), 2)
-
-    # Display image
-    cv2.imshow("Output", im)
+    return (rotation_vector, translation_vector)
 
 #use circle coordinates keypoint to determine the center point of the vitag
 def find_viTagCenter(keypoints):
@@ -326,7 +320,7 @@ def find_viTagCenter(keypoints):
     return [cx, cy]
 
 #draw the directional pose axis on viTag
-def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im):
+def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx):
     
     #params
     axis_length = 200
@@ -337,7 +331,7 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im):
     yaw_rad = rotation_vector[1][0]
     pitch_rad = rotation_vector[0][0]
 
-    print "yaw: {}, pitch {} ".format(yaw_rad*180/3.14, pitch_rad*180/3.14)
+    print "viTag {}:: yaw: {}, pitch {} ".format(idx, yaw_rad*180/3.14, pitch_rad*180/3.14)
     x_length = math.sin(yaw_rad)*axis_length
     y_length = math.sin(pitch_rad)*axis_length
     cv2.circle(im, (cX, cY), 3, (0,0,255), -1)
@@ -351,15 +345,19 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im):
     #left top corner as reference
     
     font = cv2.FONT_HERSHEY_SIMPLEX
-    x= translation_vector[0][0]
-    y = translation_vector[1][0]
-    z = translation_vector[2][0]
-    inputText = "x: {}, y: {}, Distance: {}".format(int(x), int(y), int(z))
-    cv2.putText(im,inputText,(10,400), font, 1,(130,130,255),3,cv2.LINE_AA)
+    x= translation_vector[0][0] * position_scaleRatio
+    y = translation_vector[1][0] * position_scaleRatio
+    z = translation_vector[2][0] * position_scaleRatio
+    inputText = "viTag {}:: x: {}cm, y: {}cm, Distance: {}cm".format(idx, int(x), int(y), int(z))
+    cv2.putText(im,inputText,(10,400 + idx*35), font, 0.7,(80,80,255),2,cv2.LINE_AA)
 
-    cv2.imshow("Output", im)
+    return im
 
-
+#trackbar change event function
+def Trackbar_onChange(trackbarValue):
+    global episilon_scale
+    episilon_scale = trackbarValue
+    return 0
 
 # main code
 def main():
@@ -371,6 +369,10 @@ def main():
     
     kernel = np.ones((5,5),np.uint8)
     detector = blobIni()
+    global episilon_scale
+
+    cv2.namedWindow('Contours')
+    cv2.createTrackbar('start','Contours',0, 100, Trackbar_onChange)
 
     while (True):
 
@@ -419,28 +421,46 @@ def main():
         for idx in contourIndex_list:   
             #new contours consist other potential contours besides vitag
             newContours.append(contours[idx])       
-        viTagContour, keypointslist_inVitag = create_viTagContours(contours, contourIndex_list, Blob_keypoints)
+        viTagContours, keypointslist_inVitags = create_viTagContours(contours, contourIndex_list, Blob_keypoints)
 
-        # --------------------- Corners detection -----------------
+        # ------------------------- loop through each detected viTag --------------------------
         corners_approx = None
-        if viTagContour != None:
-            #approximat proxy for finding corners      (gonna find a way to limit episilon, or change another way)
-            epsilon = 0.01*cv2.arcLength(viTagContour,True)
-            corners_approx = cv2.approxPolyDP(viTagContour,epsilon,True)
-        
-            if len(corners_approx) == 4:
-                # draw only when four corners are present
-                print("ViTag Detected: Drawing contour")
+        total_corners_approx = []
+        final_image = frame
+        if viTagContours != None:
+            numContours = len(viTagContours)
+
+            for viTagContour, keypointslist_inVitag, idx in zip(viTagContours, keypointslist_inVitags, range(numContours)):
+                # -------------------------- Corners detection ---------------------
                 
-                # -----------------------execution of transformation------------------
-                homo_Mat = persTransform(corners_approx, frame)
-                #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
-                rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
-                viTagCenter = find_viTagCenter(keypointslist_inVitag)
-                draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame)
+                #approximat proxy for finding corners      (gonna find a way to limit episilon, or change another way)
+                epsilon = 0.02*episilon_scale *cv2.arcLength(viTagContour,True)
 
-        drawContours(newContours, viTagContour, corners_approx)
+                corners_approx = cv2.approxPolyDP(viTagContour,epsilon,True)
+                total_corners_approx.append(corners_approx)
 
+                print("Corners")
+                print(cv2.minAreaRect(viTagContour))
+                print(corners_approx)
+
+                if len(corners_approx) == 4:
+                    # draw only when four corners are present
+                    print("ViTag Detected: Drawing contour")
+                    
+                    # -----------------------execution of transformation------------------
+                    
+                    homo_Mat = persTransform(corners_approx, frame)
+                    #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
+                    rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
+                    viTagCenter = find_viTagCenter(keypointslist_inVitag)
+                    final_image = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, idx)
+            
+            print("________________frame______________ ")
+        
+        background = drawContours(newContours, viTagContours, total_corners_approx)
+        cv2.imshow("Contours",background)
+
+        cv2.imshow("Final Output", final_image)
 
 
         # # gray = np.float32(gray)
