@@ -13,8 +13,11 @@ cam_matrix = np.matrix( "715.523 0 320;" +
                         "0 715.523 240;" + 
                         "0 0 1")
 dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
-episilon_scale = 1
 position_scaleRatio = 0.04026 # pysically measured via camera to convert to cm
+
+param1=100
+param2=30
+
 
 # ============================ Param =========================================
 
@@ -32,8 +35,8 @@ def ini():
     
     #webcam
     cap = cv2.VideoCapture(0)
-    width = cap.get(3)
-    height = cap.get(4)
+    width = int(cap.get(3))
+    height = int(cap.get(4))
 
     #read from external image
     # frame = cv2.imread('delusional.png',1)
@@ -157,7 +160,7 @@ def contours_filtering(contours, hierarchy):
 
 
     # perspective transformation of viTag Contour
-def persTransform(corners_approx, frame):
+def persTransform(corners_approx, gray):
 
     # ------------------------- rearrange corners matrix ---------------------
     pts = corners_approx.reshape(4, 2)
@@ -193,10 +196,9 @@ def persTransform(corners_approx, frame):
     # quaternion = transformation.quaternion_from_matrix(rotational_Mat) # to normalize mat, for all ele within -1 to 1
     # euler = transformation.euler_from_quaternion(quaternion)
 
-    # ------------------------ show Cropped viTag Image -----------------------------
-    warp = cv2.warpPerspective(frame, homo_Mat, (maxWidth, maxHeight))
-    cv2.imshow("percTransform", warp)
-    return homo_Mat
+    # ------------------------  Cropped viTag Image -----------------------------
+    viTag_Im = cv2.warpPerspective(gray, homo_Mat, (maxWidth, maxHeight))
+    return homo_Mat, viTag_Im
 
 
 #draw final vitag contours
@@ -287,9 +289,8 @@ def positionEstimation(corners_approx, im):
     (success, rotation_vector, translation_vector) = solvePnp
 
 
-    print "Rotation Vector:\n {0}".format(rotation_vector*180/3.14)
-    print "Translation Vector:\n {0}".format(translation_vector)
-    # print "{0}".format(rotation_vector[1])
+    # print "Rotation Vector:\n {0}".format(rotation_vector*180/3.14)
+    # print "Translation Vector:\n {0}".format(translation_vector)
 
     # Project a 3D point (0, 0, 1000.0) onto the image plane.
     # We use this to draw a line sticking out of the nose
@@ -353,10 +354,16 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx):
 
     return im
 
-#trackbar change event function
-def Trackbar_onChange(trackbarValue):
-    global episilon_scale
-    episilon_scale = trackbarValue
+#trackbar 1 change event function
+def Trackbar_onChange1(trackbarValue):
+    global param1
+    param1 = trackbarValue
+    return 0
+
+#trackbar 2 change event function
+def Trackbar_onChange2(trackbarValue):
+    global param2
+    param2 = trackbarValue
     return 0
 
 # main code
@@ -369,10 +376,12 @@ def main():
     
     kernel = np.ones((5,5),np.uint8)
     detector = blobIni()
-    global episilon_scale
+    global param1, param2
 
     cv2.namedWindow('Contours')
-    cv2.createTrackbar('start','Contours',0, 100, Trackbar_onChange)
+    cv2.createTrackbar('param1','Contours',0, 100, Trackbar_onChange1)
+    cv2.createTrackbar('param2','Contours',0, 100, Trackbar_onChange2)
+
 
     while (True):
 
@@ -380,9 +389,20 @@ def main():
         ret, frame = cap.read()
         frame = cv2.resize(frame,(0,0),fx=1,fy=1)
 
+        
+
         # ----------------- create suitable binary frame for contour detection ---------------
         
-        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        gray1 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
+        # for i in circles[0,:]:
+        #     # draw the outer circle
+        #     cv2.circle(gray1,(i[0],i[1]),i[2],(0,255,0),2)
+        #     # draw the center of the circle
+        #     cv2.circle(gray1,(i[0],i[1]),2,(0,0,255),3)
+
+        # cv2.imshow('detected circles',gray1)
+        
         # +++++++++++ method1: adaptive Threshold, with dilation and erosion
         # thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 81, 3) #second last odd block size param
         # thresh = cv2.dilate(thresh,kernel,iterations = 1) #dilate
@@ -390,8 +410,8 @@ def main():
         # thresh = cv2.erode(thresh,kernel,iterations = 1) #erode
 
         # +++++++++++ method 2: canny edge detection
-        gray = cv2.bilateralFilter(gray, 11, 17, 17)
-        thresh = cv2.Canny(gray, 30, 200) # canny edge detection
+        gray2 = cv2.bilateralFilter(gray1, 11, 17, 17)
+        thresh = cv2.Canny(gray2, 30, 200) # canny edge detection
         # cv2.imshow("Binary", thresh)
 
 
@@ -401,7 +421,6 @@ def main():
         ## Detect blobs and find coor
         Blob_keypoints = detector.detect(frame)
         # is_lineFitted = lineFitting(Blob_keypoints)                   #self line fitting method (not in use)
-        # print("line fitting results: {}".format(is_lineFitted))
 
         ## Draw detected blobs as red circles.
         # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
@@ -434,22 +453,41 @@ def main():
                 # -------------------------- Corners detection ---------------------
                 
                 #approximat proxy for finding corners      (gonna find a way to limit episilon, or change another way)
-                epsilon = 0.02*episilon_scale *cv2.arcLength(viTagContour,True)
+                epsilon = 0.02*cv2.arcLength(viTagContour,True)
 
                 corners_approx = cv2.approxPolyDP(viTagContour,epsilon,True)
                 total_corners_approx.append(corners_approx)
 
-                print("Corners")
-                print(cv2.minAreaRect(viTagContour))
-                print(corners_approx)
-
                 if len(corners_approx) == 4:
                     # draw only when four corners are present
-                    print("ViTag Detected: Drawing contour")
-                    
                     # -----------------------execution of transformation------------------
                     
-                    homo_Mat = persTransform(corners_approx, frame)
+                    homo_Mat, viTag_Im = persTransform(corners_approx, gray2)
+                    # further linedection and contouring on viTag_Im
+                    # viTag_lineIm = cv2.Canny(viTag_Im, 30, 200)
+                    # _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                    
+                    #hough circle method!!
+                    circles = cv2.HoughCircles(viTag_Im, cv2.HOUGH_GRADIENT,1,20,param1 = param1, param2 = param2,minRadius=0,maxRadius=500)        
+                    # # circles = np.uint16(np.around(circles))
+                    if circles is not None:
+                        print("1 from vitag!! > ", len(circles[0]))
+
+                        # circles = np.round(circles[0, :]).astype("int")
+                    
+                        for i in circles[0,:]:
+                            # draw the outer circle
+                            cv2.circle(viTag_Im,(i[0],i[1]),i[2],(0,255,0),2)
+                            # draw the center of the circle
+                            cv2.circle(viTag_Im,(i[0],i[1]),2,(0,0,255),3)
+                    else:
+                        print("1 NONE!!")
+
+
+                        
+                    # Vitag Matching, return viTag Index 
+                    cv2.imshow("percTransform", viTag_Im)
+
                     #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
                     rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
                     viTagCenter = find_viTagCenter(keypointslist_inVitag)
