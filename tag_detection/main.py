@@ -4,6 +4,7 @@ import math
 import time
 import transformation
 import matplotlib.pyplot as plt
+import yaml
 
 # ============================ Param =========================================
 areaThresh = 100         #area of the square of viTag
@@ -15,11 +16,23 @@ cam_matrix = np.matrix( "715.523 0 320;" +
 dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
 position_scaleRatio = 0.04026 # pysically measured via camera to convert to cm
 
+# Vitag frame for target pers transformation
+maxWidth = 400 #ratio is 4:20cm
+maxHeight = 80
+cropFactor = 0.05 # crop of vitaf edges
+croppedWidth = int(maxWidth*cropFactor)
+croppedHeight = int(maxHeight*cropFactor)
+
+print( "cropped pixels h {}  w {}".format(croppedHeight, croppedWidth))
+
+# others,(to be optimized)
 param1=100
 param2=30
+z_index = 0
+yaml_obj = 0
+yaml_path = "markers.yaml"
 
-
-# ============================ Param =========================================
+# ============================ End Param ===================================
 
 startTime = time.time()
 
@@ -31,7 +44,7 @@ startTime = time.time()
 
 def ini():
     #make it global var
-    global width, height, cap
+    global yaml_obj, width, height, cap
     
     #webcam
     cap = cv2.VideoCapture(0)
@@ -42,6 +55,19 @@ def ini():
     # frame = cv2.imread('delusional.png',1)
     # frame = cv2.imread('vitag.jpg',1)
     # height, width = frame.shape[:2]
+
+    #open yaml file
+    with open(yaml_path, 'r') as stream:
+        # check first line to ensure format
+        if (stream.readline() != "# VITAG POSITION YAML\n"):
+            print " Wrong format! Wrong Vitag position yaml file was selected!"
+            exit(0)
+        try:
+            yaml_obj = yaml.load(stream)
+            print "yaml open successfully!"
+        except yaml.YAMLError as exc:
+            print " Error in reading yaml file!"
+            exit(0)
 
     print("width and height are {} {}".format(width, height))
 
@@ -101,7 +127,6 @@ def lineFitting(keypoints):
                 previousGradient = abs(gradient)
                 previousC = abs(c)
             
-            # print("nxt pair")
     # time.sleep(5) 
     return False
 
@@ -178,9 +203,6 @@ def persTransform(corners_approx, gray):
     rect[3] = pts[np.argmax(diff)]
 
     # --------------------- height, width computation ----------------------------
-    maxWidth = 400 #ratio is 4:20cm
-    maxHeight = 80
-    
     # construct our destination points which will be used to
     # map the screen to a top-down, "birds eye" view
     dst = np.array([
@@ -256,6 +278,7 @@ def create_viTagContours(contours, contourIndex_list, keypoints ):
     return (viTagContours, keypointslist_inVitags)
     # return viTagContour
 
+
 #compute position and pose of the vitag
 def positionEstimation(corners_approx, im):
     # ------------------------- rearrange corners matrix ---------------------
@@ -311,6 +334,7 @@ def positionEstimation(corners_approx, im):
 
     return (rotation_vector, translation_vector)
 
+
 #use circle coordinates keypoint to determine the center point of the vitag
 def find_viTagCenter(keypoints):
     #method and limitation
@@ -320,19 +344,21 @@ def find_viTagCenter(keypoints):
     cy = ( sortedlist[3][1] + sortedlist[4][1] )/2
     return [cx, cy]
 
+
 #draw the directional pose axis on viTag
-def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx):
-    
+def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, markerinfo, idx):
+    global z_index
+
     #params
     axis_length = 200
     cX = int(centerPoints[0])
     cY = int(centerPoints[1])
 
     #--------------------playing with vectors -------------------------
-    yaw_rad = rotation_vector[1][0]
+    yaw_rad = rotation_vector[1][0] 
     pitch_rad = rotation_vector[0][0]
 
-    print "viTag {}:: yaw: {}, pitch {} ".format(idx, yaw_rad*180/3.14, pitch_rad*180/3.14)
+    # print "viTag {}:: yaw: {}, pitch {} ".format(idx, yaw_rad*180/3.14, pitch_rad*180/3.14)
     x_length = math.sin(yaw_rad)*axis_length
     y_length = math.sin(pitch_rad)*axis_length
     cv2.circle(im, (cX, cY), 3, (0,0,255), -1)
@@ -346,13 +372,99 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx):
     #left top corner as reference
     
     font = cv2.FONT_HERSHEY_SIMPLEX
-    x= translation_vector[0][0] * position_scaleRatio
-    y = translation_vector[1][0] * position_scaleRatio
+    x= translation_vector[0][0] * position_scaleRatio  
+    y = translation_vector[1][0] * position_scaleRatio 
     z = translation_vector[2][0] * position_scaleRatio
+
+    if markerinfo != None: 
+        abs_x = x + markerinfo['x']
+        abs_y = y + markerinfo['y']
+        abs_z = z + markerinfo['z']
+        abs_yaw  = yaw_rad + markerinfo['yaw']
+        print "viTag {}: x: {}; y: {}; z: {}; yaw: {}".format(idx, abs_x, abs_y, abs_z , abs_yaw*180/3.14)
+    else:
+        "invalid marker!!!"
+    
     inputText = "viTag {}:: x: {}cm, y: {}cm, Distance: {}cm".format(idx, int(x), int(y), int(z))
-    cv2.putText(im,inputText,(10,400 + idx*35), font, 0.7,(80,80,255),2,cv2.LINE_AA)
+    cv2.putText(im,inputText,(10,400 + z_index*35), font, 0.7, (80,80,255) , 2 , cv2.LINE_AA)
+    z_index = z_index + 1
 
     return im
+
+
+# input vitag im, output index info of the detected ternary marker
+def indexFromVitag(viTag_Im):
+    
+    ternary_str = ""
+    index = None
+    vitagArray = [] # [[cx0, radius1],[],[]...[cx7, radius7]]
+
+    # ---------------------- circle size detection !! --------------------------
+    # crop image edges to ensure clean frame
+    viTag_Im = viTag_Im[ croppedHeight : (maxHeight - croppedHeight), croppedWidth : (maxWidth - croppedWidth)]
+
+    viTag_Im = cv2.resize(viTag_Im, (0,0), fx=0.8, fy=0.6) 
+    viTag_Im = cv2.medianBlur(viTag_Im,7)
+    (thresh, viTag_bw) = cv2.threshold(viTag_Im, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    cv2.imshow("Binary Vitag", viTag_bw)
+    
+    _, circlesCnt, hierarchy = cv2.findContours(viTag_bw, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if (len(circlesCnt) == 8) : #TODO gonna process if fake contour detected
+        for c in circlesCnt:
+            cv2.drawContours(viTag_Im, [c], -1, (0, 255, 0), 2)
+            # compute the center of the contour
+            M = cv2.moments(c)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            
+            # compute area
+            area = cv2.contourArea(c)
+            vitagArray.append([cX, area])
+
+            # draw the contour and center of the shape on the image
+            cv2.circle(viTag_Im, (cX, cY), 5, (0, 255, 0), -1)
+            cv2.putText(viTag_Im, "CENTER", (cX - 5, cY - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
+    
+        vitagArray.sort()  # sort array according to cx
+        # print(vitagArray)
+
+        # ------------------------ decode index from size ---------------------------
+        # get first tag size as thres
+        sizeTresh = vitagArray[0][1]
+        smallerSizeTresh = sizeTresh*0.55   #some allowance for treshhold
+        largerSizeTresh = sizeTresh*1.6
+
+        for idx in range(1, 8):
+            size = vitagArray[idx][1]
+            if (size < smallerSizeTresh):
+                digit = '0'
+            elif (size < largerSizeTresh):
+                digit = '1'
+            else:
+                digit = '2'
+            
+            ternary_str = ternary_str + digit
+        
+        index  = int(ternary_str, 3)
+        print "results", ternary_str, index
+    else:
+        print "error in obtaining vitag index" 
+
+    cv2.imshow("percTransform", viTag_Im)
+
+    return index
+
+def getMarkerPositionFromYaml(idx):
+    global yaml_obj
+    # print yaml_obj
+    if idx in yaml_obj["markers"]:
+        info = yaml_obj["markers"][idx]
+        print info
+    else:
+        info = None
+        print "error in obtaining marker position info on idx {}".format(idx)
+    
+    return info
 
 #trackbar 1 change event function
 def Trackbar_onChange1(trackbarValue):
@@ -360,11 +472,13 @@ def Trackbar_onChange1(trackbarValue):
     param1 = trackbarValue
     return 0
 
+
 #trackbar 2 change event function
 def Trackbar_onChange2(trackbarValue):
     global param2
     param2 = trackbarValue
     return 0
+
 
 # main code
 def main():
@@ -376,19 +490,22 @@ def main():
     
     kernel = np.ones((5,5),np.uint8)
     detector = blobIni()
-    global param1, param2
+    global z_index, param1, param2
 
     cv2.namedWindow('Contours')
     cv2.createTrackbar('param1','Contours',0, 100, Trackbar_onChange1)
     cv2.createTrackbar('param2','Contours',0, 100, Trackbar_onChange2)
+    cv2.setTrackbarPos('param1','Contours', param1)
+    cv2.setTrackbarPos('param2','Contours', param2)
 
+    print "\n= = = = = = = = = = = = = start program = = = = = = = = = = = = =\n"
 
     while (True):
 
         #capture from webcam
         ret, frame = cap.read()
         frame = cv2.resize(frame,(0,0),fx=1,fy=1)
-
+        z_index = 0
         
 
         # ----------------- create suitable binary frame for contour detection ---------------
@@ -449,7 +566,7 @@ def main():
         if viTagContours != None:
             numContours = len(viTagContours)
 
-            for viTagContour, keypointslist_inVitag, idx in zip(viTagContours, keypointslist_inVitags, range(numContours)):
+            for viTagContour, keypointslist_inVitag in zip(viTagContours, keypointslist_inVitags):
                 # -------------------------- Corners detection ---------------------
                 
                 #approximat proxy for finding corners      (gonna find a way to limit episilon, or change another way)
@@ -467,31 +584,17 @@ def main():
                     # viTag_lineIm = cv2.Canny(viTag_Im, 30, 200)
                     # _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
                     
-                    #hough circle method!!
-                    circles = cv2.HoughCircles(viTag_Im, cv2.HOUGH_GRADIENT,1,20,param1 = param1, param2 = param2,minRadius=0,maxRadius=500)        
-                    # # circles = np.uint16(np.around(circles))
-                    if circles is not None:
-                        print("1 from vitag!! > ", len(circles[0]))
+                    # ----------------- Get Coordinate info from markers --------------
+                    # get index from markers
+                    index = indexFromVitag(viTag_Im)
+                    # info matching from yaml
+                    marker_info = getMarkerPositionFromYaml(index)
 
-                        # circles = np.round(circles[0, :]).astype("int")
                     
-                        for i in circles[0,:]:
-                            # draw the outer circle
-                            cv2.circle(viTag_Im,(i[0],i[1]),i[2],(0,255,0),2)
-                            # draw the center of the circle
-                            cv2.circle(viTag_Im,(i[0],i[1]),2,(0,0,255),3)
-                    else:
-                        print("1 NONE!!")
-
-
-                        
-                    # Vitag Matching, return viTag Index 
-                    cv2.imshow("percTransform", viTag_Im)
-
                     #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
                     rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
                     viTagCenter = find_viTagCenter(keypointslist_inVitag)
-                    final_image = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, idx)
+                    final_image = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, marker_info, index)
             
             print("________________frame______________ ")
         
