@@ -10,24 +10,27 @@ import yaml
 areaThresh = 100         #area of the square of viTag
 circlesNum = 8          #number of circle in viTag
 focusLength = 0.7       #in meters (tbc)
-cam_matrix = np.matrix( "715.523 0 320;" + 
-                        "0 715.523 240;" + 
+# cam_matrix = np.matrix( "715.523 0 320;" +  # laptop cam 
+#                         "0 715.523 240;" + 
+#                         "0 0 1")
+cam_matrix = np.matrix( "710.718 0 320;" + # webcam cam 
+                        "0 710.718 240;" + 
                         "0 0 1")
 dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
-position_scaleRatio = 0.04026 # pysically measured via camera to convert to cm
+position_scaleRatio = 0.0425 # pysically measured via camera to convert to cm
 
 # Vitag frame for target pers transformation
 maxWidth = 400 #ratio is 4:20cm
 maxHeight = 80
-cropFactor = 0.05 # crop of vitaf edges
+cropFactor = 0.04 # crop og vitaf edges
 croppedWidth = int(maxWidth*cropFactor)
 croppedHeight = int(maxHeight*cropFactor)
 
 print( "cropped pixels h {}  w {}".format(croppedHeight, croppedWidth))
 
 # others,(to be optimized)
-param1=100
-param2=30
+param1=15
+param2=20
 z_index = 0
 yaml_obj = 0
 yaml_path = "markers.yaml"
@@ -355,11 +358,11 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, markeri
     cY = int(centerPoints[1])
 
     #--------------------playing with vectors -------------------------
-    yaw_rad = rotation_vector[1][0] 
+    yaw_rad = -rotation_vector[1][0] 
     pitch_rad = rotation_vector[0][0]
 
     # print "viTag {}:: yaw: {}, pitch {} ".format(idx, yaw_rad*180/3.14, pitch_rad*180/3.14)
-    x_length = math.sin(yaw_rad)*axis_length
+    x_length = - math.sin(yaw_rad)*axis_length
     y_length = math.sin(pitch_rad)*axis_length
     cv2.circle(im, (cX, cY), 3, (0,0,255), -1)
 
@@ -372,10 +375,14 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, markeri
     #left top corner as reference
     
     font = cv2.FONT_HERSHEY_SIMPLEX
-    x= translation_vector[0][0] * position_scaleRatio  
+    x=  translation_vector[0][0] * position_scaleRatio  
     y = translation_vector[1][0] * position_scaleRatio 
     z = translation_vector[2][0] * position_scaleRatio
+    
+    print " z/sin(yaw)  > {}".format(z*math.sin(yaw_rad))
+    print "## {}".format(z*math.sin(yaw_rad) + x)
 
+    # ---------------- compute absolute position ---------------- 
     if markerinfo != None: 
         abs_x = x + markerinfo['x']
         abs_y = y + markerinfo['y']
@@ -480,6 +487,29 @@ def Trackbar_onChange2(trackbarValue):
     return 0
 
 
+def getCornersFromContour(cnt):
+    background = np.zeros((height, width,1), np.uint8)
+    img = np.zeros((height, width,3), np.uint8)
+
+    # create temp image for feature reading
+    cv2.drawContours(background, [cnt], contourIdx = -1, color = (255, 0, 255), thickness = 1)
+    new_corners = cv2.goodFeaturesToTrack(background, maxCorners= 4, qualityLevel = 0.1, minDistance = 10, blockSize = 10, k=0.4)
+    new_corners = new_corners.astype(int) #convert float to int
+
+    ## DECOMMENT THIS TO VISUALIZE BLOCKSIZE ON HARRIS PARAMS
+    # dst = cv2.cornerHarris(background, blockSize=param1, 3, k=param2*0.01)
+    # dst = cv2.dilate(dst, None)
+    # img[dst>0.01*dst.max()] = [0,0,255]
+    # cv2.imshow("test harris param", dst)
+
+    # imshow on rgb
+    cv2.drawContours(img, [cnt], contourIdx = -1, color = (255, 0, 255), thickness = 1)
+    cv2.drawContours(img, new_corners, contourIdx = -1, color = (255, 255, 255), thickness = 5)
+    cv2.imshow('corner detection2', img)
+
+    return new_corners    
+    
+
 # main code
 def main():
 
@@ -493,8 +523,8 @@ def main():
     global z_index, param1, param2
 
     cv2.namedWindow('Contours')
-    cv2.createTrackbar('param1','Contours',0, 100, Trackbar_onChange1)
-    cv2.createTrackbar('param2','Contours',0, 100, Trackbar_onChange2)
+    cv2.createTrackbar('param1','Contours', 1, 100, Trackbar_onChange1)
+    cv2.createTrackbar('param2','Contours',1, 100, Trackbar_onChange2)
     cv2.setTrackbarPos('param1','Contours', param1)
     cv2.setTrackbarPos('param2','Contours', param2)
 
@@ -569,20 +599,20 @@ def main():
             for viTagContour, keypointslist_inVitag in zip(viTagContours, keypointslist_inVitags):
                 # -------------------------- Corners detection ---------------------
                 
-                #approximat proxy for finding corners      (gonna find a way to limit episilon, or change another way)
-                epsilon = 0.02*cv2.arcLength(viTagContour,True)
+                # #approximat proxy for finding corners      (gonna find a way to limit episilon, or change another way)
+                # epsilon = 0.02*cv2.arcLength(viTagContour,True)
+                # corners_approx = cv2.approxPolyDP(viTagContour,epsilon,True)
+                # total_corners_approx.append(corners_approx)
 
-                corners_approx = cv2.approxPolyDP(viTagContour,epsilon,True)
-                total_corners_approx.append(corners_approx)
+                corners_approx = getCornersFromContour(viTagContour)
 
                 if len(corners_approx) == 4:
                     # draw only when four corners are present
                     # -----------------------execution of transformation------------------
-                    
                     homo_Mat, viTag_Im = persTransform(corners_approx, gray2)
-                    # further linedection and contouring on viTag_Im
-                    # viTag_lineIm = cv2.Canny(viTag_Im, 30, 200)
-                    # _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                    #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
+                    rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
+
                     
                     # ----------------- Get Coordinate info from markers --------------
                     # get index from markers
@@ -590,9 +620,7 @@ def main():
                     # info matching from yaml
                     marker_info = getMarkerPositionFromYaml(index)
 
-                    
-                    #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
-                    rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
+                    # ------------------ some drawing and output -----------------------
                     viTagCenter = find_viTagCenter(keypointslist_inVitag)
                     final_image = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, marker_info, index)
             
