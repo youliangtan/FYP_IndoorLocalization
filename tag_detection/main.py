@@ -10,21 +10,32 @@ import yaml
 areaThresh = 100         #area of the square of viTag
 circlesNum = 8          #number of circle in viTag
 focusLength = 0.7       #in meters (tbc)
-# cam_matrix = np.matrix( "715.523 0 320;" +  # laptop cam 
-#                         "0 715.523 240;" + 
-#                         "0 0 1")
-cam_matrix = np.matrix( "710.718 0 320;" + # webcam cam 
-                        "0 710.718 240;" + 
+cam_matrix = np.matrix( "764.093 0 320;" +  # webcam cam 3 
+                        "0 764.093 240;" + 
                         "0 0 1")
+# cam_matrix = np.matrix( "738.811 0 320;" + # webcam cam 
+#                         "0 738.811 240;" + 
+#                         "0 0 1")
+# cam_matrix = np.matrix( "549.167 0 320;" + # webcam cam 2 
+#                         "0 549.167 240;" + 
+#                         "0 0 1")
+                        
 dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
-position_scaleRatio = 0.0425 # pysically measured via camera to convert to cm
+distortion = np.matrix("0.17867552970288433 -1.4352404422882379 0 0 1.9439167199920557")
+# distortion = np.matrix("-0.098703031664 0.84872335 0 0 -3.3756656666") # with distortiond
+# distortion = np.matrix("-0.0747807 -0.231933 0 0 0.13657657")
+position_scaleRatio = 0.036 # pysically measured via camera to convert to cm
 
 # Vitag frame for target pers transformation
-maxWidth = 400 #ratio is 4:20cm
+maxWidth = 600 #ratio is w:h = 7.6 cm
 maxHeight = 80
 cropFactor = 0.04 # crop og vitaf edges
 croppedWidth = int(maxWidth*cropFactor)
 croppedHeight = int(maxHeight*cropFactor)
+
+#all vitag global coor
+vitags_absCoor_list = []
+vitags_absYaw_list = []
 
 print( "cropped pixels h {}  w {}".format(croppedHeight, croppedWidth))
 
@@ -73,6 +84,10 @@ def ini():
             exit(0)
 
     print("width and height are {} {}".format(width, height))
+
+    cv2.namedWindow("Final Output");
+    cv2.moveWindow("Final Output", 80,540);
+
 
 
 #invert img
@@ -195,7 +210,7 @@ def persTransform(corners_approx, gray):
     rect = np.zeros((4, 2), dtype = "float32")
     # the top-left point has the smallest sum whereas the
     # bottom-right has the largest sum
-    s = pts.sum(axis = 1)
+    s = pts.sum(axis = 1)       
     rect[0] = pts[np.argmin(s)]
     rect[2] = pts[np.argmax(s)]
     # compute the difference between the points -- the top-right
@@ -299,9 +314,11 @@ def positionEstimation(corners_approx, im):
     image_points[1] = pts[np.argmin(diff)]
     image_points[3] = pts[np.argmax(diff)]
 
+    print " =>> Corners height > left {}, right {}".format( image_points[3][1] - image_points[0][1], image_points[2][1] - image_points[1][1])
+    print " =>> Corners width > left {}, right {}".format( image_points[3][0] -  image_points[2][0] , image_points[0][0] - image_points[1][0])
+    print " =>> Corners h/w >  {} ".format( (image_points[3][0] -  image_points[2][0]) / (image_points[3][1] - image_points[0][1]) )
+
     # --------------------- height, width computation ----------------------------
-    maxWidth = 550 #ratio is 1:5
-    maxHeight = 80
     
     # construct our destination points which will be used to
     # map the screen to a top-down, "birds eye" view
@@ -362,41 +379,71 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, markeri
     pitch_rad = rotation_vector[0][0]
 
     # print "viTag {}:: yaw: {}, pitch {} ".format(idx, yaw_rad*180/3.14, pitch_rad*180/3.14)
-    x_length = - math.sin(yaw_rad)*axis_length
+    x_length = math.sin(yaw_rad)*axis_length
     y_length = math.sin(pitch_rad)*axis_length
     cv2.circle(im, (cX, cY), 3, (0,0,255), -1)
 
     #------------------- drawing of axis with param ----------------
     p1 = (cX, cY)
-    p2 = (int(cX + x_length), int(cY - y_length))
+    p2 = (int(cX - x_length), int(cY - y_length))
     cv2.line(im, p1, p2, (255,0,0), 5)
 
     # ------------------ insert text on image -------------------
     #left top corner as reference
     
     font = cv2.FONT_HERSHEY_SIMPLEX
-    x=  translation_vector[0][0] * position_scaleRatio  
-    y = translation_vector[1][0] * position_scaleRatio 
+    x = translation_vector[0][0] * position_scaleRatio  
+    y = - translation_vector[1][0] * position_scaleRatio 
     z = translation_vector[2][0] * position_scaleRatio
     
     print " z/sin(yaw)  > {}".format(z*math.sin(yaw_rad))
-    print "## {}".format(z*math.sin(yaw_rad) + x)
+
+    print "## {}".format(z*math.sin(yaw_rad) - x)
 
     # ---------------- compute absolute position ---------------- 
-    if markerinfo != None: 
+    if markerinfo != None: #found marker in yaml
+
+        getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo)
+
         abs_x = x + markerinfo['x']
         abs_y = y + markerinfo['y']
         abs_z = z + markerinfo['z']
         abs_yaw  = yaw_rad + markerinfo['yaw']
-        print "viTag {}: x: {}; y: {}; z: {}; yaw: {}".format(idx, abs_x, abs_y, abs_z , abs_yaw*180/3.14)
+        print "viTag {}: x: {}; y: {}; z: {}; yaw: {}, pitch: {}".format(idx, abs_x, abs_y, abs_z , abs_yaw*180/3.14, pitch_rad*180/3.14)
+
+
     else:
         "invalid marker!!!"
     
     inputText = "viTag {}:: x: {}cm, y: {}cm, Distance: {}cm".format(idx, int(x), int(y), int(z))
-    cv2.putText(im,inputText,(10,400 + z_index*35), font, 0.7, (80,80,255) , 2 , cv2.LINE_AA)
+    cv2.putText(im,inputText,(10,400 + z_index*30), font, 0.6, (80,80,255) , 2 , cv2.LINE_AA)
     z_index = z_index + 1
 
     return im
+
+
+def getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo):
+    global  vitags_absCoor_list, vitags_absYaw_list
+
+    # 2d transformation from cam to vitag
+    cam_rotMatrix = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad)], [np.sin(yaw_rad),  np.cos(yaw_rad)]])
+    cam_transMatrix = np.array([[x],[z]])
+    cam_tag_transMatrix = np.matmul(cam_rotMatrix, cam_transMatrix)
+    
+    theta = - markerinfo['yaw']
+    abs_tag_rotMatrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta),  np.cos(theta)]])
+    abs_tag_transMatrix = - np.array([[markerinfo['x']],[markerinfo['y']]])
+    abs_cam_trans = np.matmul(abs_tag_rotMatrix, cam_tag_transMatrix) + abs_tag_transMatrix
+
+    abs_yaw = theta + yaw_rad
+    print "-------------------- Tag {} -------------------".format(idx)
+    print cam_tag_transMatrix
+    print abs_cam_trans
+    print abs_yaw*180/3.14
+    
+    vitags_absCoor_list.append(abs_cam_trans)
+    vitags_absYaw_list.append(abs_yaw)
+
 
 
 # input vitag im, output index info of the detected ternary marker
@@ -410,10 +457,9 @@ def indexFromVitag(viTag_Im):
     # crop image edges to ensure clean frame
     viTag_Im = viTag_Im[ croppedHeight : (maxHeight - croppedHeight), croppedWidth : (maxWidth - croppedWidth)]
 
-    viTag_Im = cv2.resize(viTag_Im, (0,0), fx=0.8, fy=0.6) 
+    viTag_Im = cv2.resize(viTag_Im, (0,0), fx=0.8, fy=0.8) 
     viTag_Im = cv2.medianBlur(viTag_Im,7)
     (thresh, viTag_bw) = cv2.threshold(viTag_Im, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    cv2.imshow("Binary Vitag", viTag_bw)
     
     _, circlesCnt, hierarchy = cv2.findContours(viTag_bw, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if (len(circlesCnt) == 8) : #TODO gonna process if fake contour detected
@@ -493,7 +539,7 @@ def getCornersFromContour(cnt):
 
     # create temp image for feature reading
     cv2.drawContours(background, [cnt], contourIdx = -1, color = (255, 0, 255), thickness = 1)
-    new_corners = cv2.goodFeaturesToTrack(background, maxCorners= 4, qualityLevel = 0.1, minDistance = 10, blockSize = 10, k=0.4)
+    new_corners = cv2.goodFeaturesToTrack(background, maxCorners= 4, qualityLevel = 0.1, minDistance = 10, blockSize = 8, k=0.4)
     new_corners = new_corners.astype(int) #convert float to int
 
     ## DECOMMENT THIS TO VISUALIZE BLOCKSIZE ON HARRIS PARAMS
@@ -520,7 +566,7 @@ def main():
     
     kernel = np.ones((5,5),np.uint8)
     detector = blobIni()
-    global z_index, param1, param2
+    global z_index, param1, param2, vitags_absCoor_list, vitags_absYaw_list
 
     cv2.namedWindow('Contours')
     cv2.createTrackbar('param1','Contours', 1, 100, Trackbar_onChange1)
@@ -535,21 +581,20 @@ def main():
         #capture from webcam
         ret, frame = cap.read()
         frame = cv2.resize(frame,(0,0),fx=1,fy=1)
-        z_index = 0
+
+        # undistroted distortion from ori frame
+        newcameramtx, roi=cv2.getOptimalNewCameraMatrix(cam_matrix, distortion, (width,height), 1, (width,height))
+        frame = cv2.undistort(frame, cam_matrix, distortion, None, newcameramtx)
         
+        # reiniialize params
+        vitags_absCoor_list = []
+        vitags_absYaw_list = []
+        z_index = 0
 
         # ----------------- create suitable binary frame for contour detection ---------------
         
         gray1 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
-        # for i in circles[0,:]:
-        #     # draw the outer circle
-        #     cv2.circle(gray1,(i[0],i[1]),i[2],(0,255,0),2)
-        #     # draw the center of the circle
-        #     cv2.circle(gray1,(i[0],i[1]),2,(0,0,255),3)
-
-        # cv2.imshow('detected circles',gray1)
-        
         # +++++++++++ method1: adaptive Threshold, with dilation and erosion
         # thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 81, 3) #second last odd block size param
         # thresh = cv2.dilate(thresh,kernel,iterations = 1) #dilate
@@ -559,7 +604,6 @@ def main():
         # +++++++++++ method 2: canny edge detection
         gray2 = cv2.bilateralFilter(gray1, 11, 17, 17)
         thresh = cv2.Canny(gray2, 30, 200) # canny edge detection
-        # cv2.imshow("Binary", thresh)
 
 
         # ------------------------  Blob Detection ------------------------
@@ -624,12 +668,25 @@ def main():
                     viTagCenter = find_viTagCenter(keypointslist_inVitag)
                     final_image = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, marker_info, index)
             
+            
+            # calc average abs        
+            if len(vitags_absCoor_list) != 0:
+                print " ## AVERAGE LENGTH {}  {}".format(len(vitags_absCoor_list), len(vitags_absYaw_list))
+                avgAbsCoor = sum(vitags_absCoor_list)/  len(vitags_absCoor_list)
+                avgAbsYaw = sum(vitags_absYaw_list) / len(vitags_absYaw_list)
+                print " AVERAGE RESULTS {} {}".format(avgAbsCoor, avgAbsYaw)
+                
+                inputText = "AVG x:{}, y:{}, yaw {}".format(-avgAbsCoor[0][0], avgAbsCoor[1][0], avgAbsYaw*180/3.14)
+                cv2.putText(final_image,inputText,(10,20),cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,80)  , 2 , cv2.LINE_AA)
+
             print("________________frame______________ ")
         
         background = drawContours(newContours, viTagContours, total_corners_approx)
         cv2.imshow("Contours",background)
 
         cv2.imshow("Final Output", final_image)
+
+        
 
 
         # # gray = np.float32(gray)
