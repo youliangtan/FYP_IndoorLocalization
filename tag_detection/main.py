@@ -132,45 +132,6 @@ def contours_filtering(contours, hierarchy):
     return contourIndex_list
 
 
-    # perspective transformation of viTag Contour
-def persTransform(corners_approx, gray):
-
-    # ------------------------- rearrange corners matrix ---------------------
-    pts = corners_approx.reshape(4, 2)
-    rect = np.zeros((4, 2), dtype = "float32")
-    # the top-left point has the smallest sum whereas the
-    # bottom-right has the largest sum
-    s = pts.sum(axis = 1)       
-    rect[0] = pts[np.argmin(s)]
-    rect[2] = pts[np.argmax(s)]
-    # compute the difference between the points -- the top-right
-    # will have the minumum difference and the bottom-left will
-    # have the maximum difference
-    diff = np.diff(pts, axis = 1)
-    rect[1] = pts[np.argmin(diff)]
-    rect[3] = pts[np.argmax(diff)]
-
-    # --------------------- height, width computation ----------------------------
-    # construct our destination points which will be used to
-    # map the screen to a top-down, "birds eye" view
-    dst = np.array([
-        [0, 0],
-        [maxWidth - 1, 0],
-        [maxWidth - 1, maxHeight - 1],
-        [0, maxHeight - 1]], dtype = "float32")
-    
-    # calculate the perspective transform matrix and warp
-    # the perspective to grab the screen
-    homo_Mat = cv2.getPerspectiveTransform(rect, dst)
-    # euler = transformation.euler_from_matrix(rotational_Mat)
-    # quaternion = transformation.quaternion_from_matrix(rotational_Mat) # to normalize mat, for all ele within -1 to 1
-    # euler = transformation.euler_from_quaternion(quaternion)
-
-    # ------------------------  Cropped viTag Image -----------------------------
-    viTag_Im = cv2.warpPerspective(gray, homo_Mat, (maxWidth, maxHeight))
-    return homo_Mat, viTag_Im
-
-
 # draw final vitag contours
 def drawContours(newContours, viTagContours, corners_approx):
     background = np.zeros((height, width,3), np.uint8)
@@ -227,9 +188,8 @@ def create_viTagContours(contours, contourIndex_list, keypoints ):
     # return viTagContour
 
 
-# compute position and pose of the vitag
-def positionEstimation(corners_approx, im):
-    # ------------------------- rearrange corners matrix ---------------------
+# rearrange corners matrix
+def rearrangeCorners(corners_approx):
     pts = corners_approx.reshape(4, 2)
     image_points = np.zeros((4, 2), dtype = "float32")
     # the top-left point has the smallest sum whereas the
@@ -244,23 +204,54 @@ def positionEstimation(corners_approx, im):
     image_points[1] = pts[np.argmin(diff)]
     image_points[3] = pts[np.argmax(diff)]
 
-    print " =>> Corners height > left {}, right {}".format( image_points[3][1] - image_points[0][1], image_points[2][1] - image_points[1][1])
-    print " =>> Corners width > left {}, right {}".format( image_points[3][0] -  image_points[2][0] , image_points[0][0] - image_points[1][0])
-    print " =>> Corners h/w >  {} ".format( (image_points[3][0] -  image_points[2][0]) / (image_points[3][1] - image_points[0][1]) )
+    return image_points
+
+
+    # perspective transformation of viTag Contour
+def persTransform(corners_approx, gray):
+    
+    # --------------------- height, width computation ----------------------------
+    # construct our destination points which will be used to
+    # map the screen to a top-down, "birds eye" view
+    target = np.array([
+        [0, 0],
+        [maxWidth - 1, 0],
+        [maxWidth - 1, maxHeight - 1],
+        [0, maxHeight - 1]], dtype = "float32")
+    
+    # calculate the perspective transform matrix and warp
+    # the perspective to grab the screen
+    homo_Mat = cv2.getPerspectiveTransform(corners_approx, target)
+    # euler = transformation.euler_from_matrix(rotational_Mat)
+    # quaternion = transformation.quaternion_from_matrix(rotational_Mat) # to normalize mat, for all ele within -1 to 1
+    # euler = transformation.euler_from_quaternion(quaternion)
+
+    # ------------------------  Cropped viTag Image -----------------------------
+    viTag_Im = cv2.warpPerspective(gray, homo_Mat, (maxWidth, maxHeight))
+    return homo_Mat, viTag_Im
+
+
+# compute position and pose of the vitag
+def positionEstimation(corners_approx, im):
+
+    print " =>> Corners height > left {}, right {}".format( corners_approx[3][1] - corners_approx[0][1], corners_approx[2][1] - corners_approx[1][1])
+    print " =>> Corners width > left {}, right {}".format( corners_approx[3][0] -  corners_approx[2][0] , corners_approx[0][0] - corners_approx[1][0])
+    print " =>> Corners h/w >  {} ".format( (corners_approx[3][0] -  corners_approx[2][0]) / (corners_approx[3][1] - corners_approx[0][1]) )
 
     # --------------------- height, width computation ----------------------------
     
     # construct our destination points which will be used to
-    # map the screen to a top-down, "birds eye" view
-    threeD_points = np.array([
+    # map the screen to a top-down view
+    target = np.array([
         [0, 0, 0],
         [maxWidth - 1, 0, 0],
         [maxWidth - 1, maxHeight - 1, 0],
         [0, maxHeight - 1, 0]], dtype = "float32")
 
-    solvePnp = cv2.solvePnP(threeD_points, image_points, cam_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
+    solvePnp = cv2.solvePnP(target, corners_approx, cam_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
     (success, rotation_vector, translation_vector) = solvePnp
 
+    rotation_vector = -rotation_vector
 
     # print "Rotation Vector:\n {0}".format(rotation_vector*180/3.14)
     # print "Translation Vector:\n {0}".format(translation_vector)
@@ -268,7 +259,6 @@ def positionEstimation(corners_approx, im):
     # Project a 3D point (0, 0, 1000.0) onto the image plane.
     # We use this to draw a line sticking out of the nose
 
-    rotation_vector = -rotation_vector
 
     ## ------------------------ plot on matploty  ------------------------------------
     # currentTime = time.time() - startTime
@@ -363,7 +353,7 @@ def getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo):
 
 
 # input vitag im, output index info of the detected ternary marker
-def indexFromVitag(viTag_Im):
+def getIndexFromVitag(viTag_Im):
     
     ternary_str = ""
     index = None
@@ -567,6 +557,7 @@ def main():
                 if len(corners_approx) == 4:
                     # draw only when four corners are present
                     # -----------------------execution of transformation------------------
+                    corners_approx = rearrangeCorners(corners_approx)
                     homo_Mat, viTag_Im = persTransform(corners_approx, gray2)
                     #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
                     rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
@@ -574,14 +565,14 @@ def main():
                     
                     # ----------------- Get Coordinate info from markers --------------
                     # get index from markers
-                    index = indexFromVitag(viTag_Im)
+                    index = getIndexFromVitag(viTag_Im)
                     # info matching from yaml
                     marker_info = getMarkerPositionFromYaml(index)
 
                     # ------------------ some drawing and calc of abs pose output -----------------------
                     viTagCenter = getVitagCenter(keypointslist_inVitag)
                     (final_image, x, y, z, yaw_rad) = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, index)
-                    getMarkerAbsPose(idx, x, y, z, yaw_rad, marker_info)
+                    getMarkerAbsPose(idx, x, y, z, yaw_rad, marker_info) #update global list
 
             
             # ----------------- calc and show average abs ------------------------        
