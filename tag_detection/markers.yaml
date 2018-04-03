@@ -1,18 +1,18 @@
 # VITAG POSITION YAML
 description:  
-- yaml storing coor and yaw of each marker 
+- yaml storing x, y coor and yaw of each marker 
 - all respective to origin
 - Date: 14 March 2018
 - Version: 1.0 
 
 markers:
- 1 : {x: 0, y: 0, z: 0, yaw: 0}
- 2 : {x: 0, y: 0, z: 0, yaw: 0}
- 3 : {x: 0, y: 0, z: 0, yaw: 0}
- 7 : {x: 0, y: 0, z: 0, yaw: 0}
- 14 : {x: 35, y: 0, z: 0, yaw: 0}
- 22 : {x: 96, y: 0, z: 0, yaw: 0}
- 33 : {x: 66, y: 0, z: 0, yaw: 0}
+ 1 : {x: 10, y: 30, yaw: 1.571}
+ 2 : {x: 40, y: 30, yaw: 1.571}
+ 3 : {x: 25, y: 60, yaw: 0.785}
+ 7 : {x: 80, y: 70, yaw: 0.785}
+ 14 : {x: 135, y: 70, yaw: 0.785}
+ 22 : {x: 150, y: 80, yaw: 0.785}
+ 33 : {x: 180, y: 90, yaw: 0.785}
  34 : {x: -10, y: 0, z: 0, yaw: -0.785}  #dire 10, 0.785 both +ve
  1459 : {x: 0, y: 0, z: 0, yaw: 0}
  1492 : {x: 0, y: 0, z: 0, yaw: 0}

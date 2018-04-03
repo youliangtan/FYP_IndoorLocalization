@@ -10,12 +10,12 @@ from std_msgs.msg import String
 
 # ============================ Param =========================================
 
-cam_matrix = np.matrix( "764.093 0 320;" +  # webcam cam 3 
-                        "0 764.093 240;" + 
+# cam_matrix = np.matrix( "764.093 0 320;" +  # webcam cam 3 
+#                         "0 764.093 240;" + 
+                        # "0 0 1")
+cam_matrix = np.matrix( "738.811 0 320;" + # webcam cam 
+                        "0 738.811 240;" + 
                         "0 0 1")
-# cam_matrix = np.matrix( "738.811 0 320;" + # webcam cam 
-#                         "0 738.811 240;" + 
-#                         "0 0 1")
 # cam_matrix = np.matrix( "549.167 0 320;" + # webcam cam 2 
 #                         "0 549.167 240;" + 
 #                         "0 0 1")                        
@@ -65,6 +65,7 @@ def ini():
     height = int(cap.get(4))
 
     #open yaml file
+    print yaml_path
     with open(yaml_path, 'r') as stream:
         # check first line to ensure format
         if (stream.readline() != "# VITAG POSITION YAML\n"):
@@ -75,6 +76,7 @@ def ini():
             print "yaml open successfully!"
         except yaml.YAMLError as exc:
             print " Error in reading yaml file!"
+            print " Check the format and syntax of yaml"
             exit(0)
 
     print("width and height are {} {}".format(width, height))
@@ -91,17 +93,13 @@ def invert(imagem):
 
 
 #Blob Detector Initialize
-def blobIni():
+def blobIni(): #TODO improvise
     ### Set up the Blob detector with default parameters.
     params = cv2.SimpleBlobDetector_Params()
 
     # Filter by Circularity
     params.filterByCircularity = True
     params.minCircularity = 0.8
-
-    # Filter by Circularity
-    params.filterByConvexity = True
-    params.minConvexity = 0.8
 
     return cv2.SimpleBlobDetector_create(params)
 
@@ -152,6 +150,7 @@ def drawContours(newContours, viTagContours, corners_approx):
 
 
 # find the valid 4 sided vitag contour and return vitag contour
+# TODO further optimize code
 def create_viTagContours(contours, contourIndex_list, keypoints ):
     blobNum = len(keypoints)
     viTagContours = []
@@ -248,25 +247,19 @@ def positionEstimation(corners_approx, im):
         [maxWidth - 1, maxHeight - 1, 0],
         [0, maxHeight - 1, 0]], dtype = "float32")
 
+    
     solvePnp = cv2.solvePnP(target, corners_approx, cam_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
     (success, rotation_vector, translation_vector) = solvePnp
 
     rotation_vector = -rotation_vector
 
-    # print "Rotation Vector:\n {0}".format(rotation_vector*180/3.14)
-    # print "Translation Vector:\n {0}".format(translation_vector)
-
-    # Project a 3D point (0, 0, 1000.0) onto the image plane.
-    # We use this to draw a line sticking out of the nose
-
-
     ## ------------------------ plot on matploty  ------------------------------------
     # currentTime = time.time() - startTime
-    # ==> Rotation
+    ## ==> Rotation
     # plt.scatter(currentTime, rotation_vector[0]*180/3.14, color = 'red')    #pitch axis -- havin problem
     # plt.scatter(currentTime,  rotation_vector[1]*180/3.14, color = 'blue')  # yaw axis -- interested
     # plt.scatter(currentTime, rotation_vector[2]*180/3.14, color = 'green')   #row axis
-    # ==> Translation
+    ## ==> Translation
     # plt.scatter(currentTime, translation_vector[0], color = 'red')    #x
     # plt.scatter(currentTime,  translation_vector[1], color = 'blue')  #y
     # plt.scatter(currentTime, translation_vector[2], color = 'green')  #z
@@ -325,6 +318,8 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx):
 #  compute absolute pose of camera
 def getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo):
     global  vitags_absCoor_list, vitags_absYaw_list
+
+    yaw_rad = -yaw_rad ## test
  
     if markerinfo != None: #found marker in yaml
         # 2d transformation from cam to vitag
@@ -491,7 +486,7 @@ def main():
         # undistroted distortion from ori frame
         newcameramtx, roi=cv2.getOptimalNewCameraMatrix(cam_matrix, distortion, (width,height), 1, (width,height))
         frame = cv2.undistort(frame, cam_matrix, distortion, None, newcameramtx)
-        
+
         # reiniialize params
         vitags_absCoor_list = []
         vitags_absYaw_list = []
