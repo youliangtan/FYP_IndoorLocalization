@@ -70,94 +70,94 @@ iixdr = iixdr0
 freq = 1  
   
 while True:  
-hack = time.time()  
-  
-# if it's been longer than 5 seconds since last print  
-if (hack - t_damp) > 5.0:  
-    
-  if (hack - t_fail) > 1.0:  
-    t_one = 0  
-    t_three = 0  
-    roll_total = 0.0  
-    roll_run = [0] * 10  
-    heading_cos_total = 0.0  
-    heading_sin_total = 0.0  
-    heading_cos_run = [0] * 30  
-    heading_sin_run = [0] * 30  
-    t_fail_timer += 1  
-    imu_sentence = "IIXDR,IMU_FAIL," + str(round(t_fail_timer / 60, 1))  
-    cs = format(reduce(operator.xor,map(ord,imu_sentence),0),'X')  
-    if len(cs) == 1:  
-        cs = "0" + cs  
-    imu_sentence = "$" + imu_sentence + "*" + cs  
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  
-    sock.sendto(imu_sentence, (IMU_IP, IMU_PORT))  
-    t_fail = hack  
-    t_shutdown += 1  
-  
-if imu.IMURead():  
-  data = imu.getIMUData()  
-  fusionPose = data["fusionPose"]  
-  Gyro = data["gyro"]  
-  t_fail_timer = 0.0  
-  
-  if (hack - t_damp) > .1:  
-    roll = round(math.degrees(fusionPose[0]), 1)  
-    pitch = round(math.degrees(fusionPose[1]), 1)  
-    yaw = round(math.degrees(fusionPose[2]), 1)  
-    rollrate = round(math.degrees(Gyro[0]), 1)  
-    pitchrate = round(math.degrees(Gyro[1]), 1)  
-    yawrate = round(math.degrees(Gyro[2]), 1)  
-    if yaw < 90.1:  
-      heading = yaw + 270 - magnetic_deviation  
-    else:  
-      heading = yaw - 90 - magnetic_deviation  
-    if heading > 360.0:  
-      heading = heading - 360.0  
-        
-    # Dampening functions  
-    roll_total = roll_total - roll_run[t_one]  
-    roll_run[t_one] = roll  
-    roll_total = roll_total + roll_run[t_one]  
-    roll = roll_total / 10  
-    heading_cos_total = heading_cos_total - heading_cos_run[t_three]  
-    heading_sin_total = heading_sin_total - heading_sin_run[t_three]  
-    heading_cos_run[t_three] = math.cos(math.radians(heading))  
-    heading_sin_run[t_three] = math.sin(math.radians(heading))  
-    heading_cos_total = heading_cos_total + heading_cos_run[t_three]  
-    heading_sin_total = heading_sin_total + heading_sin_run[t_three]  
-    heading = round(math.degrees(math.atan2(heading_sin_total/30,heading_cos_total/30)),1)  
-    if heading < 0.1:  
-      heading = heading + 360.0  
-  
-    t_damp = hack  
-    t_one += 1  
-    if t_one == 10:  
-      t_one = 0  
-    t_three += 1  
-    if t_three == 30:  
-      t_three = 0  
-  
-    if (hack - t_print) > 1:  
-      hdt = "IIHDT," + str(round(heading))[:-2] + ",T"  
-      hdtcs = format(reduce(operator.xor,map(ord,hdt),0),'X')  
-      if len(hdtcs) == 1:  
-        hdtcs = "0" + hdtcs  
-      iihdt = "$" + hdt + "*" + hdtcs  
+    hack = time.time()  
+
+    # if it's been longer than 5 seconds since last print  
+    if (hack - t_damp) > 5.0:  
       
-      xdr = "IIXDR,A," + str(int(round(roll))) + ",D,ROLL,A," + str(int(round(pitch))) + ",D,PTCH,A," + str(int(round(rollrate))) + ",D,RLLR,A," + str(int(round(pitchrate))) + ",D,PTCR,A," + str(int(round(yawrate))) + ",D,YAWR"  
-      xdrcs = format(reduce(operator.xor,map(ord,xdr),0),'X')  
-      if len(xdrcs) == 1:  
-        xdrcs = "0" + xdrcs  
-      iixdr = "$" + xdr + "*" + xdrcs  
-  
-      imu_sentence = iihdt + '\r\n' + iixdr  
-  
+    if (hack - t_fail) > 1.0:  
+      t_one = 0  
+      t_three = 0  
+      roll_total = 0.0  
+      roll_run = [0] * 10  
+      heading_cos_total = 0.0  
+      heading_sin_total = 0.0  
+      heading_cos_run = [0] * 30  
+      heading_sin_run = [0] * 30  
+      t_fail_timer += 1  
+      imu_sentence = "IIXDR,IMU_FAIL," + str(round(t_fail_timer / 60, 1))  
+      cs = format(reduce(operator.xor,map(ord,imu_sentence),0),'X')  
+      if len(cs) == 1:  
+          cs = "0" + cs  
+      imu_sentence = "$" + imu_sentence + "*" + cs  
       sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  
       sock.sendto(imu_sentence, (IMU_IP, IMU_PORT))  
-  
-      t_print = hack  
-      
-  time.sleep(poll_interval*1.0/1000.0) 
+      t_fail = hack  
+      t_shutdown += 1  
+
+    if imu.IMURead():  
+    data = imu.getIMUData()  
+    fusionPose = data["fusionPose"]  
+    Gyro = data["gyro"]  
+    t_fail_timer = 0.0  
+
+    if (hack - t_damp) > .1:  
+      roll = round(math.degrees(fusionPose[0]), 1)  
+      pitch = round(math.degrees(fusionPose[1]), 1)  
+      yaw = round(math.degrees(fusionPose[2]), 1)  
+      rollrate = round(math.degrees(Gyro[0]), 1)  
+      pitchrate = round(math.degrees(Gyro[1]), 1)  
+      yawrate = round(math.degrees(Gyro[2]), 1)  
+      if yaw < 90.1:  
+        heading = yaw + 270 - magnetic_deviation  
+      else:  
+        heading = yaw - 90 - magnetic_deviation  
+      if heading > 360.0:  
+        heading = heading - 360.0  
+          
+      # Dampening functions  
+      roll_total = roll_total - roll_run[t_one]  
+      roll_run[t_one] = roll  
+      roll_total = roll_total + roll_run[t_one]  
+      roll = roll_total / 10  
+      heading_cos_total = heading_cos_total - heading_cos_run[t_three]  
+      heading_sin_total = heading_sin_total - heading_sin_run[t_three]  
+      heading_cos_run[t_three] = math.cos(math.radians(heading))  
+      heading_sin_run[t_three] = math.sin(math.radians(heading))  
+      heading_cos_total = heading_cos_total + heading_cos_run[t_three]  
+      heading_sin_total = heading_sin_total + heading_sin_run[t_three]  
+      heading = round(math.degrees(math.atan2(heading_sin_total/30,heading_cos_total/30)),1)  
+      if heading < 0.1:  
+        heading = heading + 360.0  
+
+      t_damp = hack  
+      t_one += 1  
+      if t_one == 10:  
+        t_one = 0  
+      t_three += 1  
+      if t_three == 30:  
+        t_three = 0  
+
+      if (hack - t_print) > 1:  
+        hdt = "IIHDT," + str(round(heading))[:-2] + ",T"  
+        hdtcs = format(reduce(operator.xor,map(ord,hdt),0),'X')  
+        if len(hdtcs) == 1:  
+          hdtcs = "0" + hdtcs  
+        iihdt = "$" + hdt + "*" + hdtcs  
+        
+        xdr = "IIXDR,A," + str(int(round(roll))) + ",D,ROLL,A," + str(int(round(pitch))) + ",D,PTCH,A," + str(int(round(rollrate))) + ",D,RLLR,A," + str(int(round(pitchrate))) + ",D,PTCR,A," + str(int(round(yawrate))) + ",D,YAWR"  
+        xdrcs = format(reduce(operator.xor,map(ord,xdr),0),'X')  
+        if len(xdrcs) == 1:  
+          xdrcs = "0" + xdrcs  
+        iixdr = "$" + xdr + "*" + xdrcs  
+
+        imu_sentence = iihdt + '\r\n' + iixdr  
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  
+        sock.sendto(imu_sentence, (IMU_IP, IMU_PORT))  
+
+        t_print = hack  
+        
+    time.sleep(poll_interval*1.0/1000.0) 
 
 
