@@ -35,7 +35,7 @@ print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
 while True:
   if imu.IMURead():
-    print -------- Time stamp: {} ----------.format(time.time())
+    print "-------- Time stamp: {} ----------".format(time.time())
 
     # fusion data: means remove gravity on z-axis
     x, y, z = imu.getFusionData()
@@ -45,7 +45,7 @@ while True:
     data = imu.getIMUData()
     raw_x, raw_y, raw_z = data['accel']
     print("RAW ACCEL:\t %f %f %f" % (raw_x, raw_y, raw_z))
-    print("ABS ACCEL: {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
+    print("ABS ACCEL:\t {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
 
 
     fusionPose = data["fusionPose"]
