@@ -6,7 +6,7 @@ import os.path
 import time
 import math
 
-SETTINGS_FILE = "RTIMULib"
+SETTINGS_FILE = "RTIMULib_calibrated"
 
 print("Using settings file " + SETTINGS_FILE + ".ini")
 if not os.path.exists(SETTINGS_FILE + ".ini"):
