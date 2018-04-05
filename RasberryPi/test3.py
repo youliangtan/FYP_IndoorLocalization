@@ -116,7 +116,7 @@ while True:
 
     if (hack - t_damp) > .1:
         roll = round(math.degrees(fusionPose[0]) - rolloff, 1)
-	pitch = round(math.degrees(fusionPose[1]) - pitchoff, 1)
+        pitch = round(math.degrees(fusionPose[1]) - pitchoff, 1)
         yaw = round(math.degrees(fusionPose[2])- yawoff, 1)
         rollrate = round(math.degrees(Gyro[0]), 1)
         pitchrate = round(math.degrees(Gyro[1]), 1)
