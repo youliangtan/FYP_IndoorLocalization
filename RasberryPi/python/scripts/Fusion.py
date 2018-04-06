@@ -6,6 +6,13 @@ import os.path
 import time
 import math
 
+# ========= global variables =================
+prev_timestamp = 0
+prev_vel = 0
+prev_dis = 0
+prev_result = np.array([[prev_dis], [prev_vel]])
+
+
 # ========== global imu class delaration ============= 
 SETTINGS_FILE = "RTIMULib_calibrated"
 
@@ -15,8 +22,6 @@ if not os.path.exists(SETTINGS_FILE + ".ini"):
 
 s = RTIMU.Settings(SETTINGS_FILE)
 imu = RTIMU.RTIMU(s)
-
-
 
 if (not imu.IMUInit()):
     print("IMU Init Failed")
@@ -59,15 +64,28 @@ def main():
             print("RAW ACCEL:\t %f %f %f" % (raw_x, raw_y, raw_z))
             print("ABS ACCEL:\t {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
             
-            d, v = odometry(raw_x, data['timestamp'])
+            d, v = odometry_x(raw_x, data['timestamp'])
+            print d, v
 
             fusionPose = data["fusionPose"]
             print("ROTATION:\t %f p: %f y: %f" % (math.degrees(fusionPose[0]), math.degrees(fusionPose[1]), math.degrees(fusionPose[2])))
             time.sleep(poll_interval*10.0/1000.0)
 
 
-def odometry_x(data, timestamp):
+# result = A_matrix * prev_result + B_matrix * accel
+def odometry_x(accel, timestamp):
     print "test"
+    delta_t = timestamp - prev_timestamp
+
+    A_matrix = np.array([[1, delta_t], [0,  1]])
+    B_matrix = np.array([[0.5*delta_t*delta_t], [delta_t]])
+    result = np.matmul( A_matrix, prev_result ) + np.matmul( B_matrix, accel )
+
+    print result
+    prev_result = result
+
+    return result[0], result[1]
+
 
 
 if __name__ == '__main__':
