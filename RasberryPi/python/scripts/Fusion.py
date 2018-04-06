@@ -6,38 +6,47 @@ import os.path
 import time
 import math
 
+# ========== global imu class delaration ============= 
+SETTINGS_FILE = "RTIMULib_calibrated"
 
+print("Using settings file " + SETTINGS_FILE + ".ini")
+if not os.path.exists(SETTINGS_FILE + ".ini"):
+	print("Settings file does not exist, will be created")
+
+s = RTIMU.Settings(SETTINGS_FILE)
+imu = RTIMU.RTIMU(s)
+
+
+
+if (not imu.IMUInit()):
+    print("IMU Init Failed")
+    sys.exit(1)
+else:
+    print("IMU Init Succeeded")
+
+
+#initialization
 def init():
-    SETTINGS_FILE = "RTIMULib_calibrated"
-
-    print("Using settings file " + SETTINGS_FILE + ".ini")
-    if not os.path.exists(SETTINGS_FILE + ".ini"):
-    print("Settings file does not exist, will be created")
-
-    s = RTIMU.Settings(SETTINGS_FILE)
-    imu = RTIMU.RTIMU(s)
-
-    print("IMU Name: " + imu.IMUName())
-
-    if (not imu.IMUInit()):
-        print("IMU Init Failed")
-        sys.exit(1)
-    else:
-        print("IMU Init Succeeded")
+    global imu
 
     # this is a good time to set any fusion parameters
-
+    print("IMU Name: " + imu.IMUName())
+    
     imu.setSlerpPower(0.02)
     imu.setGyroEnable(True)
     imu.setAccelEnable(True)
     imu.setCompassEnable(True)
 
-
+ 
+#main
 def main():
+    global imu
+
     poll_interval = imu.IMUGetPollInterval()
     print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
     while True:
+
         if imu.IMURead():
             print "-------- Time stamp: {} ----------".format(time.time())
 
@@ -45,17 +54,20 @@ def main():
             x, y, z = imu.getFusionData()
             print("FUSION ACCEL:\t %f %f %f" % (x,y,z))
 
-
             data = imu.getIMUData()
             raw_x, raw_y, raw_z = data['accel']
             print("RAW ACCEL:\t %f %f %f" % (raw_x, raw_y, raw_z))
             print("ABS ACCEL:\t {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
-
+            
+            d, v = odometry(raw_x, data['timestamp'])
 
             fusionPose = data["fusionPose"]
             print("ROTATION:\t %f p: %f y: %f" % (math.degrees(fusionPose[0]), math.degrees(fusionPose[1]), math.degrees(fusionPose[2])))
             time.sleep(poll_interval*10.0/1000.0)
 
+
+def odometry_x(data, timestamp):
+    print "test"
 
 
 if __name__ == '__main__':
