@@ -5,6 +5,7 @@ import RTIMU
 import os.path
 import time
 import math
+import socket
 
 # ========= global variables =================
 prev_timestamp = time.time()*1000000
@@ -30,6 +31,15 @@ if (not imu.IMUInit()):
 else:
     print("IMU Init Succeeded")
 
+# =========== client _ server initialization =================
+host = 'localhost'
+port = 8000
+
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((host, port))
+
+
+
 
 #initialization
 def init():
@@ -52,7 +62,6 @@ def main():
     print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
     while True:
-
         if imu.IMURead():
             #print "-------- Time stamp: {} ----------".format(time.time())
 
@@ -79,7 +88,6 @@ def main():
 def odometry_x(accel, timestamp):
     global prev_result, prev_timestamp, skip_count
 
-
     delta_t = timestamp - prev_timestamp
 
     #calib accel
@@ -103,6 +111,15 @@ def odometry_x(accel, timestamp):
         skip_count = 0
     else:
         skip_count = skip_count + 1
+
+
+    #send results to server
+    client_socket.send(data)
+    while client_socket.recv(2048) != "ack":
+        print "failed to fer server!"
+        print "waiting for ack"
+        time.sleep(1)
+
 
     return result[0], result[1]
 
