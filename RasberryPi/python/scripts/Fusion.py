@@ -12,7 +12,7 @@ prev_timestamp = time.time()*1000000
 prev_vel = 0
 prev_dis = 0
 prev_result = np.array([[prev_dis], [prev_vel]])
-skip_print = 10
+skip_send = 10
 skip_count = 0
 offsetavg_sample_count = 300
 offsetavg = 0
@@ -33,16 +33,15 @@ if (not imu.IMUInit()):
 else:
     print("IMU Init Succeeded")
 
-<<<<<<< HEAD
 # =========== client _ server initialization =================
 host = 'localhost'
 port = 8000
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((host, port))
-=======
+
+
 start_time = time.time()
->>>>>>> f6f1a1b4f7f94ddb860de699338e72513db087c7
 
 
 
@@ -115,71 +114,64 @@ def main():
             #print("ABS ACCEL:\t {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
             
 
-            d, v = odometry_x(abs_x, data['timestamp'], data)
-            #print d, v
+            d, v, a = odometry_x(abs_x, data['timestamp'])
+            sendToServer(d, v, a, data)
 
             time.sleep(poll_interval*1.0/1000.0)
 
 
-
-
-
 # result = A_matrix * prev_result + B_matrix * accel
-def odometry_x(accel, timestamp, data):
-    global prev_result, prev_timestamp, skip_count
+def odometry_x(accel, timestamp):
+    global prev_result, prev_timestamp
 
     delta_t = timestamp - prev_timestamp
 
     #calib accel
 
-
     accel = accel - offsetavg
-    accel = accel* 9.8
-
-    delta_t = float(delta_t)/1000000 
-    
+    computed_accel = accel* 9.8
+    delta_t = float(delta_t)/1000000    #0.01s interval 100hz
 
     #elliminate noisy data during start
     if abs(accel) > 0 and (time.time() - start_time) > 8:
         A_matrix = np.array([[1, delta_t], [0,  1]])
         B_matrix = np.array([[0.5*delta_t*delta_t], [delta_t]])
-        result = np.matmul( A_matrix, prev_result ) + accel * B_matrix
+        result = np.matmul( A_matrix, prev_result ) + computed_accel * B_matrix
 
         prev_result = result
     prev_timestamp = timestamp
 
-    if (skip_count == skip_print): 
-        print "test, accel {}, timestamp {}, prev ts {}".format( accel, timestamp, prev_timestamp )
-        print "delta t ", delta_t
-        print prev_result
-        #print data
-        #print data['fusionPose']
+    return prev_result[0], prev_result[1], computed_accel
+
+
+#send data from client to server in 0.1 interval (according to skip_send)
+def sendToServer(d, v, a, data):
+    global skip_count
+
+    if (skip_count == skip_send): 
+
+
         fusionPose = data["fusionPose"]
         raw_x, raw_y, raw_z = data['accel']
         print raw_x, (raw_z*math.sin(fusionPose[1]))
         print("RAW ACCEL:\t %f %f %f" % (raw_x, raw_y, raw_z))
         print("ABS ACCEL:\t {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
         print("ROTATION:\t %f p: %f y: %f" % (math.degrees(fusionPose[0]), math.degrees(fusionPose[1]), math.degrees(fusionPose[2])))
-        
+
+        print("\t => d:{}, v:{}, a:{}".format(d, v, a))
+
+        #send results to server
+        client_socket.send(data)
+        while client_socket.recv(2048) != "ack":
+            print "Failed to connect to server!"
+            print "waiting for ack"
+            time.sleep(1)
+
         skip_count = 0
+        
     else:
         skip_count = skip_count + 1
-
-<<<<<<< HEAD
-
-    #send results to server
-    client_socket.send(data)
-    while client_socket.recv(2048) != "ack":
-        print "failed to fer server!"
-        print "waiting for ack"
-        time.sleep(1)
-
-
-    return result[0], result[1]
-=======
-    return prev_result[0], prev_result[1]
->>>>>>> f6f1a1b4f7f94ddb860de699338e72513db087c7
-
+    
 
 
 if __name__ == '__main__':
