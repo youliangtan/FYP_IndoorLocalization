@@ -11,11 +11,13 @@ prev_timestamp = time.time()*1000000
 prev_vel = 0
 prev_dis = 0
 prev_result = np.array([[prev_dis], [prev_vel]])
-skip_print = 100
+skip_print = 10
 skip_count = 0
+offsetavg_sample_count = 300
+offsetavg = 0
 
 # ========== global imu class delaration ============= 
-SETTINGS_FILE = "RTIMULib_calibrated"
+SETTINGS_FILE = "RTIMULib_090518_calib1"
 
 print("Using settings file " + SETTINGS_FILE + ".ini")
 if not os.path.exists(SETTINGS_FILE + ".ini"):
@@ -29,6 +31,10 @@ if (not imu.IMUInit()):
     sys.exit(1)
 else:
     print("IMU Init Succeeded")
+
+start_time = time.time()
+
+
 
 
 #initialization
@@ -46,11 +52,42 @@ def init():
  
 #main
 def main():
-    global imu
+    global imu, offsetavg
+    sum_x = 0
+    count = 0
 
     poll_interval = imu.IMUGetPollInterval()
     print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
+
+
+    # compute average on accel to obtain offset
+    print("computing avg offset.... wait 5s")
+    while True:
+
+        if imu.IMURead():
+            data = imu.getIMUData()
+            raw_x, raw_y, raw_z = data['accel']
+            pitch = data['fusionPose'][1]
+            abs_x = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)            
+
+            # ignore initial dirty data from imu
+            if (time.time() - start_time) > 2:
+                if count < offsetavg_sample_count:
+                    sum_x = sum_x + abs_x
+                    count = count+1
+                else:
+                    break
+        
+            time.sleep(poll_interval*3.0/1000.0)
+    
+    offsetavg = sum_x/offsetavg_sample_count
+    print "offsetavg is {}".format(offsetavg)
+    print "start time {}, now {}".format(start_time, time.time())
+
+
+
+    #run main
     while True:
 
         if imu.IMURead():
@@ -62,21 +99,24 @@ def main():
 
             data = imu.getIMUData()
             raw_x, raw_y, raw_z = data['accel']
+            pitch = data['fusionPose'][1]
+            abs_x = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)
+            
             #print("RAW ACCEL:\t %f %f %f" % (raw_x, raw_y, raw_z))
             #print("ABS ACCEL:\t {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
             
-            d, v = odometry_x(raw_y, data['timestamp'])
+
+            d, v = odometry_x(abs_x, data['timestamp'], data)
             #print d, v
 
-            fusionPose = data["fusionPose"]
-            #print("ROTATION:\t %f p: %f y: %f" % (math.degrees(fusionPose[0]), math.degrees(fusionPose[1]), math.degrees(fusionPose[2])))
-            
-            
             time.sleep(poll_interval*1.0/1000.0)
 
 
+
+
+
 # result = A_matrix * prev_result + B_matrix * accel
-def odometry_x(accel, timestamp):
+def odometry_x(accel, timestamp, data):
     global prev_result, prev_timestamp, skip_count
 
 
@@ -84,27 +124,40 @@ def odometry_x(accel, timestamp):
 
     #calib accel
 
+
+    accel = accel - offsetavg
     accel = accel* 9.8
-    accel = accel + 0.08
 
     delta_t = float(delta_t)/1000000 
     
-    A_matrix = np.array([[1, delta_t], [0,  1]])
-    B_matrix = np.array([[0.5*delta_t*delta_t], [delta_t]])
-    result = np.matmul( A_matrix, prev_result ) + accel * B_matrix
 
-    prev_result = result
+    #elliminate noisy data during start
+    if abs(accel) > 0 and (time.time() - start_time) > 8:
+        A_matrix = np.array([[1, delta_t], [0,  1]])
+        B_matrix = np.array([[0.5*delta_t*delta_t], [delta_t]])
+        result = np.matmul( A_matrix, prev_result ) + accel * B_matrix
+
+        prev_result = result
     prev_timestamp = timestamp
 
     if (skip_count == skip_print): 
         print "test, accel {}, timestamp {}, prev ts {}".format( accel, timestamp, prev_timestamp )
         print "delta t ", delta_t
-        print result
+        print prev_result
+        #print data
+        #print data['fusionPose']
+        fusionPose = data["fusionPose"]
+        raw_x, raw_y, raw_z = data['accel']
+        print raw_x, (raw_z*math.sin(fusionPose[1]))
+        print("RAW ACCEL:\t %f %f %f" % (raw_x, raw_y, raw_z))
+        print("ABS ACCEL:\t {}".format(math.sqrt(raw_x*raw_x + raw_y*raw_y + raw_z*raw_z)))
+        print("ROTATION:\t %f p: %f y: %f" % (math.degrees(fusionPose[0]), math.degrees(fusionPose[1]), math.degrees(fusionPose[2])))
+        
         skip_count = 0
     else:
         skip_count = skip_count + 1
 
-    return result[0], result[1]
+    return prev_result[0], prev_result[1]
 
 
 
