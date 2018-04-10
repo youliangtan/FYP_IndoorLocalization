@@ -1,9 +1,9 @@
 import socket
 
 s = socket.socket()
-# host = '10.27.124.161' #ip of raspberry pi
+host = '10.27.124.161' #ip of raspberry pi
 
-host = socket.gethostname()
+# host = socket.gethostname()
 print host
 
 port = 8000
