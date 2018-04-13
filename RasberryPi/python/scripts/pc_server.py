@@ -2,7 +2,7 @@ import socket
 import sys
 
 #host = 'localhost'
-host = '10.27.58.225' #laptop ip
+host = '10.27.242.99' #laptop ip
 port = 8800
 address = (host, port)
 
