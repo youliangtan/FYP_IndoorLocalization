@@ -1,2 +1,2 @@
-
--DCATKIN_DEVEL_PREFIX=/home/tan/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/tan/catkin_ws/install -G Unix Makefiles
+youliang
+-DCATKIN_DEVEL_PREFIX=/home/tan/fyp_vitagDetection/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/tan/fyp_vitagDetection/catkin_ws/install -G Unix Makefiles

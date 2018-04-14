@@ -47,6 +47,8 @@ yaml_path = "markers.yaml"
 
 # ============================ End Param ===================================
 
+rospy.init_node('tf_publisher_node')
+br = tf.TransformBroadcaster()
 startTime = time.time()
 
 #------------- ploting --------------
@@ -126,6 +128,10 @@ def contours_filtering(contours, hierarchy):
                         contourIndex_list.append(filtered_index)
 
             idx += 1
+
+        #TODO filter out if contour is in contour
+        for cnt in contourIndex_list:
+            pass
 
     return contourIndex_list
 
@@ -582,6 +588,9 @@ def main():
 
         # ---------------------- publishing results ------------------------------ 
         hello_str= "________________frame at time %s ______________ " % rospy.get_time()
+        
+        br.sendTransform((x, y, 0), tf.transformations.quaternion_from_euler(yaw, 0, 0),rospy.Time.now(), 'base_link',"world") #####the transformation is published here
+
         rospy.loginfo(hello_str)
         pub.publish(hello_str)
         

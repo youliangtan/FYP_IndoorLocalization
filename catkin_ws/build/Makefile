@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/tan/catkin_ws/src
+CMAKE_SOURCE_DIR = /home/tan/fyp_vitagDetection/catkin_ws/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/tan/catkin_ws/build
+CMAKE_BINARY_DIR = /home/tan/fyp_vitagDetection/catkin_ws/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -135,9 +135,9 @@ test/fast: test
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/tan/catkin_ws/build/CMakeFiles /home/tan/catkin_ws/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/tan/fyp_vitagDetection/catkin_ws/build/CMakeFiles /home/tan/fyp_vitagDetection/catkin_ws/build/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/tan/catkin_ws/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/tan/fyp_vitagDetection/catkin_ws/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -282,6 +282,110 @@ gtest_main/fast:
 	$(MAKE) -f gtest/gtest/CMakeFiles/gtest_main.dir/build.make gtest/gtest/CMakeFiles/gtest_main.dir/build
 .PHONY : gtest_main/fast
 
+#=============================================================================
+# Target rules for targets named run_tests_youliang_roslaunch-check
+
+# Build rule for target.
+run_tests_youliang_roslaunch-check: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 run_tests_youliang_roslaunch-check
+.PHONY : run_tests_youliang_roslaunch-check
+
+# fast build rule for target.
+run_tests_youliang_roslaunch-check/fast:
+	$(MAKE) -f youliang/CMakeFiles/run_tests_youliang_roslaunch-check.dir/build.make youliang/CMakeFiles/run_tests_youliang_roslaunch-check.dir/build
+.PHONY : run_tests_youliang_roslaunch-check/fast
+
+#=============================================================================
+# Target rules for targets named _run_tests_youliang
+
+# Build rule for target.
+_run_tests_youliang: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 _run_tests_youliang
+.PHONY : _run_tests_youliang
+
+# fast build rule for target.
+_run_tests_youliang/fast:
+	$(MAKE) -f youliang/CMakeFiles/_run_tests_youliang.dir/build.make youliang/CMakeFiles/_run_tests_youliang.dir/build
+.PHONY : _run_tests_youliang/fast
+
+#=============================================================================
+# Target rules for targets named _run_tests_youliang_roslaunch-check_launch
+
+# Build rule for target.
+_run_tests_youliang_roslaunch-check_launch: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 _run_tests_youliang_roslaunch-check_launch
+.PHONY : _run_tests_youliang_roslaunch-check_launch
+
+# fast build rule for target.
+_run_tests_youliang_roslaunch-check_launch/fast:
+	$(MAKE) -f youliang/CMakeFiles/_run_tests_youliang_roslaunch-check_launch.dir/build.make youliang/CMakeFiles/_run_tests_youliang_roslaunch-check_launch.dir/build
+.PHONY : _run_tests_youliang_roslaunch-check_launch/fast
+
+#=============================================================================
+# Target rules for targets named _run_tests_youliang_roslaunch-check
+
+# Build rule for target.
+_run_tests_youliang_roslaunch-check: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 _run_tests_youliang_roslaunch-check
+.PHONY : _run_tests_youliang_roslaunch-check
+
+# fast build rule for target.
+_run_tests_youliang_roslaunch-check/fast:
+	$(MAKE) -f youliang/CMakeFiles/_run_tests_youliang_roslaunch-check.dir/build.make youliang/CMakeFiles/_run_tests_youliang_roslaunch-check.dir/build
+.PHONY : _run_tests_youliang_roslaunch-check/fast
+
+#=============================================================================
+# Target rules for targets named run_tests_youliang
+
+# Build rule for target.
+run_tests_youliang: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 run_tests_youliang
+.PHONY : run_tests_youliang
+
+# fast build rule for target.
+run_tests_youliang/fast:
+	$(MAKE) -f youliang/CMakeFiles/run_tests_youliang.dir/build.make youliang/CMakeFiles/run_tests_youliang.dir/build
+.PHONY : run_tests_youliang/fast
+
+#=============================================================================
+# Target rules for targets named _catkin_empty_exported_target
+
+# Build rule for target.
+_catkin_empty_exported_target: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 _catkin_empty_exported_target
+.PHONY : _catkin_empty_exported_target
+
+# fast build rule for target.
+_catkin_empty_exported_target/fast:
+	$(MAKE) -f youliang/CMakeFiles/_catkin_empty_exported_target.dir/build.make youliang/CMakeFiles/_catkin_empty_exported_target.dir/build
+.PHONY : _catkin_empty_exported_target/fast
+
+#=============================================================================
+# Target rules for targets named run_tests_youliang_roslaunch-check_launch
+
+# Build rule for target.
+run_tests_youliang_roslaunch-check_launch: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 run_tests_youliang_roslaunch-check_launch
+.PHONY : run_tests_youliang_roslaunch-check_launch
+
+# fast build rule for target.
+run_tests_youliang_roslaunch-check_launch/fast:
+	$(MAKE) -f youliang/CMakeFiles/run_tests_youliang_roslaunch-check_launch.dir/build.make youliang/CMakeFiles/run_tests_youliang_roslaunch-check_launch.dir/build
+.PHONY : run_tests_youliang_roslaunch-check_launch/fast
+
+#=============================================================================
+# Target rules for targets named clean_test_results_youliang
+
+# Build rule for target.
+clean_test_results_youliang: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 clean_test_results_youliang
+.PHONY : clean_test_results_youliang
+
+# fast build rule for target.
+clean_test_results_youliang/fast:
+	$(MAKE) -f youliang/CMakeFiles/clean_test_results_youliang.dir/build.make youliang/CMakeFiles/clean_test_results_youliang.dir/build
+.PHONY : clean_test_results_youliang/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -304,6 +408,14 @@ help:
 	@echo "... gmock_main"
 	@echo "... gtest"
 	@echo "... gtest_main"
+	@echo "... run_tests_youliang_roslaunch-check"
+	@echo "... _run_tests_youliang"
+	@echo "... _run_tests_youliang_roslaunch-check_launch"
+	@echo "... _run_tests_youliang_roslaunch-check"
+	@echo "... run_tests_youliang"
+	@echo "... _catkin_empty_exported_target"
+	@echo "... run_tests_youliang_roslaunch-check_launch"
+	@echo "... clean_test_results_youliang"
 .PHONY : help
 
 

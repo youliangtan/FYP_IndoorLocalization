@@ -1,2 +1,2 @@
 - setup-file:
-    local-name: /home/tan/catkin_ws/devel/setup.sh
+    local-name: /home/tan/fyp_vitagDetection/catkin_ws/devel/setup.sh
