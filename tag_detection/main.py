@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import yaml
 import rospy
 from std_msgs.msg import String
+import tf.transformations as tr
+import tf
 
 # ============================ Param =========================================
 
@@ -32,22 +34,16 @@ cropFactor = 0.04 # crop og vitaf edges
 croppedWidth = int(maxWidth*cropFactor)
 croppedHeight = int(maxHeight*cropFactor)
 
-# all vitag global coor
-vitags_absCoor_list = []
-vitags_absYaw_list = []
-
 # others,(to be optimized)
 param1=15               #tracker
 param2=20               #tracker
 areaThresh = 100        #area of the square of viTag
 circlesNum = 8          #number of circle in viTag
-z_index = 0
 yaml_obj = 0
 yaml_path = "markers.yaml"
 
 # ============================ End Param ===================================
 
-rospy.init_node('tf_publisher_node')
 br = tf.TransformBroadcaster()
 startTime = time.time()
 
@@ -59,7 +55,10 @@ startTime = time.time()
 
 def ini():
     #make it global var
-    global yaml_obj, width, height, cap
+    global yaml_obj, width, height, cap, param1, param2
+
+    #ros
+    rospy.init_node('tf_publisher_node')
     
     #webcam
     cap = cv2.VideoCapture(0)
@@ -87,6 +86,25 @@ def ini():
     cv2.namedWindow("Final Output");
     cv2.moveWindow("Final Output", 80,540); #move win to desired location
 
+    # trackbar setup
+    cv2.createTrackbar('param1','Final Output', 1, 100, Trackbar_onChange1)
+    cv2.createTrackbar('param2','Contours',1, 100, Trackbar_onChange2)
+    cv2.setTrackbarPos('param1','Final Output', param1)
+    cv2.setTrackbarPos('param2','Contours', param2)
+
+
+
+# #trackbar 1 change event function
+def Trackbar_onChange1(trackbarValue):
+    global param1
+    param1 = trackbarValue
+    return 0
+
+#trackbar 2 change event function
+def Trackbar_onChange2(trackbarValue):
+    global param2
+    param2 = trackbarValue
+    return 0
 
 #invert img
 def invert(imagem):
@@ -109,37 +127,35 @@ def blobIni(): #TODO improvise
 #filter undesired contours, return list index of desired contours
 def contours_filtering(contours, hierarchy):
     contourIndex_list = []
-    
-    idx = 0
+
     if len(contours) != 0:
         for cnt, h in zip(contours, hierarchy[0]):
             area = cv2.contourArea(cnt)
-            
             #area filtering
             #add contour larger than certain size to new list
             if (area > areaThresh):
-                
                 #hierichy filtering
                 if h[2] == -1: #find all child contours (with no children) in hiera!
                     # because cnt of parent is same cnt, so need to find grandparents of child(2 hierachy up of the circles cnt)
                     filtered_index = hierarchy[0][h[3]][3]
-
                     if filtered_index not in contourIndex_list:
                         contourIndex_list.append(filtered_index)
 
-            idx += 1
+        # filter out if contour is in contour
+        return_index_list = list(contourIndex_list)
+        for idx in contourIndex_list:
+            while hierarchy[0][idx][3] != -1: #loop thru parents of parents till no more ancestor
+                idx = hierarchy[0][idx][3]
+                if idx in contourIndex_list:
+                    return_index_list.remove(idx)
+                    break
 
-        #TODO filter out if contour is in contour
-        for cnt in contourIndex_list:
-            pass
-
-    return contourIndex_list
+    return return_index_list
 
 
 # draw final vitag contours
 def drawContours(newContours, viTagContours, corners_approx):
     background = np.zeros((height, width,3), np.uint8)
-    
     index = -1
     thickness = 1
     color1 = (255, 0, 255)
@@ -147,7 +163,6 @@ def drawContours(newContours, viTagContours, corners_approx):
     cv2.drawContours(background, newContours, index, color1, thickness)  #filtered background contours as pink
 
     if viTagContours != None:
-
         cv2.drawContours(background, viTagContours, index, color2, 5)   #vitag box label as white 
         for corners in corners_approx:
             cv2.drawContours(background, corners, -1, (0, 255, 0), 10)
@@ -160,16 +175,14 @@ def drawContours(newContours, viTagContours, corners_approx):
 def create_viTagContours(contours, contourIndex_list, keypoints ):
     blobNum = len(keypoints)
     viTagContours = []
-    viTagContour_size = 999999
-    keypointslist_inContour = [] #keypoints coor exist in one contour
     keypointslist_inVitags = []  #confirmed keypoints coor in viTag
 
     if blobNum < 8:         #didnt reach min number of blob for vitag Detection
         return (None, None)
     
     for idx in contourIndex_list: # loop through each detected contour
-        circleTag_count = 0
         cnt = contours[idx]
+        keypointslist_inContour = [] #keypoints coor exist in one contour
 
         for i in range(blobNum): #loop thru circleslabel
             x = keypoints[i].pt[0]
@@ -178,19 +191,13 @@ def create_viTagContours(contours, contourIndex_list, keypoints ):
             # check if point in contour            
             is_inContour = cv2.pointPolygonTest(cnt, (x,y), False)
             if (is_inContour == 1):
-                circleTag_count += 1
                 keypointslist_inContour.append([x, y])
-                # print("cicle count in vitag {}".format(circleTag_count))
 
-        if circleTag_count == circlesNum:
-            #update the smaller valid contour as vitag Contour
-            # if viTagContour_size > cv2.contourArea(cnt):
+        if len(keypointslist_inContour) == circlesNum:
             viTagContours.append(cnt)
             keypointslist_inVitags.append(keypointslist_inContour)
-        keypointslist_inContour = []
 
     return (viTagContours, keypointslist_inVitags)
-    # return viTagContour
 
 
 # rearrange corners matrix
@@ -214,24 +221,14 @@ def rearrangeCorners(corners_approx):
 
     # perspective transformation of viTag Contour
 def persTransform(corners_approx, gray):
-    
-    # --------------------- height, width computation ----------------------------
-    # construct our destination points which will be used to
-    # map the screen to a top-down, "birds eye" view
-    target = np.array([
-        [0, 0],
-        [maxWidth - 1, 0],
-        [maxWidth - 1, maxHeight - 1],
-        [0, maxHeight - 1]], dtype = "float32")
-    
+    target_2d = np.array([
+            [0, 0],
+            [maxWidth - 1, 0],
+            [maxWidth - 1, maxHeight - 1],
+            [0, maxHeight - 1]], dtype = "float32")
     # calculate the perspective transform matrix and warp
     # the perspective to grab the screen
-    homo_Mat = cv2.getPerspectiveTransform(corners_approx, target)
-    # euler = transformation.euler_from_matrix(rotational_Mat)
-    # quaternion = transformation.quaternion_from_matrix(rotational_Mat) # to normalize mat, for all ele within -1 to 1
-    # euler = transformation.euler_from_quaternion(quaternion)
-
-    # ------------------------  Cropped viTag Image -----------------------------
+    homo_Mat = cv2.getPerspectiveTransform(corners_approx, target_2d)
     viTag_Im = cv2.warpPerspective(gray, homo_Mat, (maxWidth, maxHeight))
     return homo_Mat, viTag_Im
 
@@ -242,34 +239,16 @@ def positionEstimation(corners_approx, im):
     print " =>> Corners height > left {}, right {}".format( corners_approx[3][1] - corners_approx[0][1], corners_approx[2][1] - corners_approx[1][1])
     print " =>> Corners width > left {}, right {}".format( corners_approx[3][0] -  corners_approx[2][0] , corners_approx[0][0] - corners_approx[1][0])
     print " =>> Corners h/w >  {} ".format( (corners_approx[3][0] -  corners_approx[2][0]) / (corners_approx[3][1] - corners_approx[0][1]) )
-
-    # --------------------- height, width computation ----------------------------
-    
     # construct our destination points which will be used to
-    # map the screen to a top-down view
-    target = np.array([
+    target_3d = np.array([
         [0, 0, 0],
         [maxWidth - 1, 0, 0],
         [maxWidth - 1, maxHeight - 1, 0],
         [0, maxHeight - 1, 0]], dtype = "float32")
-
     
-    solvePnp = cv2.solvePnP(target, corners_approx, cam_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
+    solvePnp = cv2.solvePnP(target_3d, corners_approx, cam_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
     (success, rotation_vector, translation_vector) = solvePnp
-
     rotation_vector = -rotation_vector
-
-    ## ------------------------ plot on matploty  ------------------------------------
-    # currentTime = time.time() - startTime
-    ## ==> Rotation
-    # plt.scatter(currentTime, rotation_vector[0]*180/3.14, color = 'red')    #pitch axis -- havin problem
-    # plt.scatter(currentTime,  rotation_vector[1]*180/3.14, color = 'blue')  # yaw axis -- interested
-    # plt.scatter(currentTime, rotation_vector[2]*180/3.14, color = 'green')   #row axis
-    ## ==> Translation
-    # plt.scatter(currentTime, translation_vector[0], color = 'red')    #x
-    # plt.scatter(currentTime,  translation_vector[1], color = 'blue')  #y
-    # plt.scatter(currentTime, translation_vector[2], color = 'green')  #z
-    # plt.pause(0.001)
 
     return (rotation_vector, translation_vector)
 
@@ -285,8 +264,7 @@ def getVitagCenter (keypoints):
 
 
 #draw the directional pose axis on viTag
-def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx):
-    global z_index
+def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx, contour_num):
 
     #params
     axis_length = 200
@@ -315,42 +293,35 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx):
     
     font = cv2.FONT_HERSHEY_SIMPLEX
     inputText = "viTag {}:: x: {}cm, y: {}cm, Distance: {}cm".format(idx, int(x), int(y), int(z))
-    cv2.putText(im,inputText,(10,400 + z_index*30), font, 0.6, (80,80,255) , 2 , cv2.LINE_AA)
-    z_index = z_index + 1
+    cv2.putText(im,inputText,(10,400 + contour_num*30), font, 0.6, (80,80,255) , 2 , cv2.LINE_AA)
     
     return (im, x, y, z, yaw_rad)
 
 
+
 #  compute absolute pose of camera
 def getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo):
-    global  vitags_absCoor_list, vitags_absYaw_list
 
-    yaw_rad = -yaw_rad ## test
- 
-    if markerinfo != None: #found marker in yaml
-        # 2d transformation from cam to vitag
-        cam_rotMatrix = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad)], [np.sin(yaw_rad),  np.cos(yaw_rad)]])
-        cam_transMatrix = np.array([[x],[z]])
-        cam_tag_transMatrix = np.matmul(cam_rotMatrix, cam_transMatrix)
-        
-        # 2d transformation from vitag to global origin
-        theta = - markerinfo['yaw']
-        abs_tag_rotMatrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta),  np.cos(theta)]])
-        abs_tag_transMatrix = - np.array([[markerinfo['x']],[markerinfo['y']]])
-        abs_cam_trans = np.matmul(abs_tag_rotMatrix, cam_tag_transMatrix) + abs_tag_transMatrix
-
-        abs_yaw = theta + yaw_rad
-        print "-------------------- Tag {} -------------------".format(idx)
-        print cam_tag_transMatrix
-        print abs_cam_trans
-        print abs_yaw*180/3.14
-        
-        #update global list of coors and yaw
-        vitags_absCoor_list.append(abs_cam_trans)
-        vitags_absYaw_list.append(abs_yaw)
+    # 2d transformation from cam to vitag
+    cam_rotMatrix = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad)], [np.sin(yaw_rad),  np.cos(yaw_rad)]])
+    cam_transMatrix = -np.array([[x],[z]])
+    cam_tag_transMatrix = -np.matmul(cam_rotMatrix, cam_transMatrix)
     
-    else:
-        print "invalid marker for index {}!!!".format(idx)
+    # 2d transformation from vitag to global origin
+    theta = - markerinfo['yaw']
+    abs_tag_rotMatrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta),  np.cos(theta)]])
+    abs_tag_transMatrix = np.array([[markerinfo['x']],[markerinfo['y']]])
+    abs_cam_trans = np.matmul(abs_tag_rotMatrix, cam_tag_transMatrix) + abs_tag_transMatrix
+
+    abs_yaw = theta + yaw_rad
+
+    print "-------------------- Tag {} -------------------".format(idx)
+    print "Cam 2 Tag\t", cam_tag_transMatrix[0], cam_tag_transMatrix[1]
+    print "World abs\t", abs_cam_trans[0], abs_cam_trans[1]
+    print abs_yaw*180/3.14
+    
+    return (abs_cam_trans, abs_yaw) 
+
 
 
 # input vitag im, output index info of the detected ternary marker
@@ -386,7 +357,6 @@ def getIndexFromVitag(viTag_Im):
             cv2.putText(viTag_Im, "CENTER", (cX - 5, cY - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
     
         vitagArray.sort()  # sort array according to cx
-        # print(vitagArray)
 
         # ------------------------ decode index from size ---------------------------
         # get first tag size as thres
@@ -421,22 +391,8 @@ def getMarkerPositionFromYaml(idx):
     else:
         info = None
         print "error in obtaining marker position info on idx {}".format(idx)
-
     return info
 
-
-#trackbar 1 change event function
-def Trackbar_onChange1(trackbarValue):
-    global param1
-    param1 = trackbarValue
-    return 0
-
-
-#trackbar 2 change event function
-def Trackbar_onChange2(trackbarValue):
-    global param2
-    param2 = trackbarValue
-    return 0
 
 
 def getCornersFromContour(cnt):
@@ -464,22 +420,10 @@ def getCornersFromContour(cnt):
 
 # main code
 def main():
-    
-    # ros pub setup
-    pub = rospy.Publisher('locator', String, queue_size=10)
-    rospy.init_node('talker', anonymous=True)
 
     # other setup    
     kernel = np.ones((5,5),np.uint8)
     detector = blobIni()  #blob detector
-    
-    global z_index, param1, param2, vitags_absCoor_list, vitags_absYaw_list
-
-    # trackbar setup
-    cv2.createTrackbar('param1','Contours', 1, 100, Trackbar_onChange1)
-    cv2.createTrackbar('param2','Contours',1, 100, Trackbar_onChange2)
-    cv2.setTrackbarPos('param1','Contours', param1)
-    cv2.setTrackbarPos('param2','Contours', param2)
 
     print "\n= = = = = = = = = = = = = start program = = = = = = = = = = = = =\n"
 
@@ -496,7 +440,6 @@ def main():
         # reiniialize params
         vitags_absCoor_list = []
         vitags_absYaw_list = []
-        z_index = 0
 
         # ----------------- create suitable binary frame for contour detection ---------------
         
@@ -520,22 +463,13 @@ def main():
         # TODO can use opencv func (cv2.fitline)
         # find whether 8 coor or more of the center circles lies on the same line, return bolean 
 
-        ## Draw detected blobs as red circles.
-        # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
-        # img_with_keypoints = cv2.drawKeypoints(frame, Blob_keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        # cv2.imshow("Blob Detection", img_with_keypoints)
-
-
         # --------------------- Contour Detection ---------------------
-        
         _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contourIndex_list = contours_filtering(contours, hierarchy)
 
-        #create new contours
-        newContours = []
-        for idx in contourIndex_list:   
-            #new contours consist other potential contours besides vitag
-            newContours.append(contours[idx])       
+        #create new contours which contists potential contours besides vitag
+        newContours = list(map((lambda i: contours[i]), contourIndex_list))
+   
         viTagContours, keypointslist_inVitags = create_viTagContours(contours, contourIndex_list, Blob_keypoints)
 
         # ------------------------- loop through each detected viTag --------------------------
@@ -543,16 +477,10 @@ def main():
         total_corners_approx = []
         final_image = frame
         if viTagContours != None:
-            numContours = len(viTagContours)
-
+            contour_num = 0
             for viTagContour, keypointslist_inVitag in zip(viTagContours, keypointslist_inVitags):
                 # -------------------------- Corners detection ---------------------
                 
-                # #approximat proxy for finding corners      (gonna find a way to limit episilon, or change another way)
-                # epsilon = 0.02*cv2.arcLength(viTagContour,True)
-                # corners_approx = cv2.approxPolyDP(viTagContour,epsilon,True)
-                # total_corners_approx.append(corners_approx)
-
                 corners_approx = getCornersFromContour(viTagContour)
 
                 if len(corners_approx) == 4:
@@ -562,18 +490,31 @@ def main():
                     homo_Mat, viTag_Im = persTransform(corners_approx, gray2)
                     #smthing = cv2.decomposeHomographyMat(homo_Mat, cam_matrix)
                     rotation_vector, translation_vector = positionEstimation(corners_approx, frame)
-
                     
                     # ----------------- Get Coordinate info from markers --------------
                     # get index from markers
-                    index = getIndexFromVitag(viTag_Im)
+                    VitagIndex = getIndexFromVitag(viTag_Im)
                     # info matching from yaml
-                    marker_info = getMarkerPositionFromYaml(index)
+                    marker_info = getMarkerPositionFromYaml(VitagIndex)
 
                     # ------------------ some drawing and calc of abs pose output -----------------------
                     viTagCenter = getVitagCenter(keypointslist_inVitag)
-                    (final_image, x, y, z, yaw_rad) = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, index)
-                    getMarkerAbsPose(idx, x, y, z, yaw_rad, marker_info) #update global list
+                    (final_image, x, y, z, yaw_rad) = draw_poseaxis(rotation_vector, translation_vector, viTagCenter, frame, VitagIndex, contour_num)
+                    contour_num = contour_num + 1
+                    
+                    if marker_info != None: #marker exist in yaml
+                        abs_cam_trans, abs_yaw = getMarkerAbsPose(VitagIndex, x, y, z, yaw_rad, marker_info) #update global list
+                        
+                        #update list of coors and yaw
+                        vitags_absCoor_list.append(abs_cam_trans)
+                        vitags_absYaw_list.append(abs_yaw)
+
+                        br.sendTransform((abs_cam_trans[0]/100, abs_cam_trans[1]/100, 0), tf.transformations.quaternion_from_euler(1.571,0, abs_yaw),rospy.Time.now(), 'base_link',"world") 
+                    else:
+                        print "invalid marker for index {}!!!".format(VitagIndex)
+
+                    # marker rel to cam
+                    # br.sendTransform((x/100,0,z/100), tf.transformations.quaternion_from_euler(0, 0, yaw_rad),rospy.Time.now(), 'base_link',"world")
 
             
             # ----------------- calc and show average abs ------------------------        
@@ -588,27 +529,11 @@ def main():
 
         # ---------------------- publishing results ------------------------------ 
         hello_str= "________________frame at time %s ______________ " % rospy.get_time()
-        
-        br.sendTransform((x, y, 0), tf.transformations.quaternion_from_euler(yaw, 0, 0),rospy.Time.now(), 'base_link',"world") #####the transformation is published here
-
-        rospy.loginfo(hello_str)
-        pub.publish(hello_str)
+        print hello_str
         
         background = drawContours(newContours, viTagContours, total_corners_approx)
         cv2.imshow("Contours",background)
         cv2.imshow("Final Output", final_image)
-
-        # # gray = np.float32(gray)
-        # dst = cv2.cornerHarris(thresh,23,3,0.04)   #corner harris method, intensive of scanning thru image
-        # print(dst)
-        # #result is dilated for marking the corners, not important
-        # dst = cv2.dilate(dst,None)
-
-        # # Threshold for an optimal value, it may vary depending on the image.
-        # frame[dst>0.01*dst.max()]=[0,0,255]
-
-        # cv2.imshow('dst',frame)
-
         ch = cv2.waitKey(1)
 
         if ch & 0xFF == ord('q'):
