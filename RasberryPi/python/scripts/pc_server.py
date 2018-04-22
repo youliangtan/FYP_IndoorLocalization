@@ -3,7 +3,7 @@ import sys
 
 #host = 'localhost'
 host = '192.168.1.135' #laptop ip
-port = 8000
+port = 8800
 address = (host, port)
 
 while True:
@@ -22,7 +22,6 @@ while True:
         if output.strip() == "disconnect":
             conn.close()
             # sys.exit("Received disconnect message.  Shutting down.")
-            conn.send("dack")
             print "disconnect current client!"
             break
 
