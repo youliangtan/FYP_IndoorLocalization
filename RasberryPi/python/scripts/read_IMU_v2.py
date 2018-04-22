@@ -127,6 +127,7 @@ def sendDataToServer(delta_t):
             print "waiting for ack"
             time.sleep(1)
         result.count = 0
+        result.timediff = 0
 
     else:
         result.x_accel_sum = result.x_accel
