@@ -9,7 +9,7 @@ import socket
 
 # ========= global variables =================
 prev_timestamp = time.time()*1000000
-skip_send = 10
+skip_send = 5
 
 offsetavg_sample_count = 300
 offsetavg_x = 0
@@ -121,6 +121,7 @@ def sendDataToServer(delta_t):
         y_avgAccel = result.y_accel_sum / result.count
 
         send_data = "{};{};{};{}".format(x_avgAccel, y_avgAccel, result.yaw, result.timediff)
+        print "To Server: ", send_data
         client_socket.send(send_data)
         while client_socket.recv(2048) != "ack":
             print "Failed to connect to server!"
