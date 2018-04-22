@@ -39,7 +39,7 @@ poll_interval = imu.IMUGetPollInterval()
 print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
 # =========== client _ server initialization =================
-host = '10.27.58.225' #laptop ip
+host = '192.168.1.135' #laptop ip
 port = 8800
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
