@@ -111,17 +111,17 @@ def odometry_x(accel, duration):
    
     A_matrix = np.array([[1, duration], [0,  1]])
     B_matrix = np.array([[0.5*duration*duration], [duration]])
-    result = np.matmul( A_matrix, prev_result ) + computed_accel * B_matrix
+    result = np.matmul( A_matrix, prev_result_x ) + computed_accel * B_matrix
 
     prev_result_x = result
 
-    return prev_result[0][0], prev_result[1][0], computed_accel
+    return prev_result_x[0][0], prev_result_x[1][0], computed_accel
 
 
 
 # result = A_matrix * prev_result + B_matrix * accel
 def odometry_y(accel, duration):
-    global prev_result_x
+    global prev_result_y
 
     #calib accel
     accel = accel - offsetavg_y
@@ -129,11 +129,11 @@ def odometry_y(accel, duration):
    
     A_matrix = np.array([[1, duration], [0,  1]])
     B_matrix = np.array([[0.5*duration*duration], [duration]])
-    result = np.matmul( A_matrix, prev_result ) + computed_accel * B_matrix
+    result = np.matmul( A_matrix, prev_result_y ) + computed_accel * B_matrix
 
     prev_result_y = result
 
-    return prev_result[0][0], prev_result[1][0], computed_accel
+    return prev_result_y[0][0], prev_result_y[1][0], computed_accel
 
 
 
