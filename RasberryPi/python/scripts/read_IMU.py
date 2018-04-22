@@ -45,10 +45,7 @@ port = 8800
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((host, port))
 
-
 start_time = time.time()
-
-
 
 
 #initialization
@@ -102,43 +99,6 @@ def init():
     print "Start time {}, now {}".format(start_time, time.time())
 
 
- 
-#main function
-def main():
-    global imu, prev_timestamp
-
-    print "wait few seconds to kick start!!"    
-
-    while True:
-        if imu.IMURead():
-            #print "-------- Time stamp: {} ----------".format(time.time())
-
-            # fusion data: means remove gravity on z-axis
-            x, y, z = imu.getFusionData()
-            #print("FUSION ACCEL:\t %f %f %f" % (x,y,z))
-
-            data = imu.getIMUData()
-            raw_x, raw_y, raw_z = data['accel']
-            pitch = data['fusionPose'][1]
-            roll = data['fusionPose'][0]
-            abs_x = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)
-            abs_y= raw_y*math.cos(roll) + raw_z*math.sin(roll)\
-
-            #compute delta t in terms of seconds
-            timestamp = data['timestamp']
-            delta_t =  timestamp - prev_timestamp
-            delta_t = float(delta_t)/1000000    #0.01s interval 100hz
-
-            #elliminate noisy data during start, waiting....
-            if (time.time() - start_time) > 8:            
-                d_x, v_x, a_x = odometry_x(abs_x, delta_t)
-                d_y, v_y, a_y = odometry_y(abs_y, delta_t)
-                sendToServer(d_x, v_x, a_x, data)
-
-            prev_timestamp = timestamp
-            time.sleep(poll_interval*1.0/1000.0)
-
-
 
 # result = A_matrix * prev_result + B_matrix * accel
 def odometry_x(accel, duration):
@@ -182,7 +142,6 @@ def sendToServer(d, v, a, data):
 
     if (skip_count == skip_send): 
 
-
         fusionPose = data["fusionPose"]
         raw_x, raw_y, raw_z = data['accel']
         print raw_x, (raw_z*math.sin(fusionPose[1]))
@@ -207,6 +166,42 @@ def sendToServer(d, v, a, data):
     else:
         skip_count = skip_count + 1
     
+
+
+#main function
+def main():
+    global imu, prev_timestamp
+
+    print "wait few seconds to kick start!!"    
+
+    while True:
+        if imu.IMURead():
+            #print "-------- Time stamp: {} ----------".format(time.time())
+
+            # fusion data: means remove gravity on z-axis
+            x, y, z = imu.getFusionData()
+            #print("FUSION ACCEL:\t %f %f %f" % (x,y,z))
+
+            data = imu.getIMUData()
+            raw_x, raw_y, raw_z = data['accel']
+            pitch = data['fusionPose'][1]
+            roll = data['fusionPose'][0]
+            abs_x = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)
+            abs_y= raw_y*math.cos(roll) + raw_z*math.sin(roll)\
+
+            #compute delta t in terms of seconds
+            timestamp = data['timestamp']
+            delta_t =  timestamp - prev_timestamp
+            delta_t = float(delta_t)/1000000    #0.01s interval 100hz
+
+            #elliminate noisy data during start, waiting....
+            if (time.time() - start_time) > 8:            
+                d_x, v_x, a_x = odometry_x(abs_x, delta_t)
+                d_y, v_y, a_y = odometry_y(abs_y, delta_t)
+                sendToServer(d_x, v_x, a_x, data)
+
+            prev_timestamp = timestamp
+            time.sleep(poll_interval*1.0/1000.0)
 
 
 if __name__ == '__main__':

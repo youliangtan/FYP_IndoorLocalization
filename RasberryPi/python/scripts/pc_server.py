@@ -2,7 +2,7 @@ import socket
 import sys
 
 #host = 'localhost'
-host = '10.27.242.99' #laptop ip
+host = '192.168.1.135' #laptop ip
 port = 8800
 address = (host, port)
 
@@ -14,6 +14,7 @@ print "Listening for client . . ."
 conn, address = server_socket.accept()
 print "Connected to client at ", address
 #pick a large output buffer size because i dont necessarily know how big the incoming packet is                                                    
+
 while True:
     output = conn.recv(2048);
     if output.strip() == "disconnect":
@@ -22,5 +23,7 @@ while True:
         conn.send("dack")
     elif output:
         print "Message received from client:"
-        print output
+        
+        #ouput received readings here!
+        print output 
         conn.send("ack")
