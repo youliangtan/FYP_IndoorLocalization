@@ -3,7 +3,7 @@ import sys
 
 #host = 'localhost'
 host = '192.168.1.135' #laptop ip
-port = 8800
+port = 8000
 address = (host, port)
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -40,8 +40,9 @@ print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
 # =========== client _ server initialization =================
 host = '192.168.1.135' #laptop ip
-port = 8800
+port = 8000
 
+print "Connecting to server"
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((host, port))
 
