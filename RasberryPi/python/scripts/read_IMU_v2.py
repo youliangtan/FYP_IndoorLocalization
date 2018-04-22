@@ -6,10 +6,11 @@ import os.path
 import time
 import math
 import socket
+import signal
 
 # ========= global variables =================
 prev_timestamp = time.time()*1000000
-skip_send = 5
+skip_send = 8
 
 offsetavg_sample_count = 300
 offsetavg_x = 0
@@ -137,12 +138,21 @@ def sendDataToServer(delta_t):
         result.timediff = result.timediff + delta_t
 
 
-    
+
+def signal_handler(signal, frame):
+    print('You pressed Ctrl+C!')
+    #send disconnect message                                                                                                                           
+    dmsg = "disconnect"
+    print "Disconnecting then exit"
+    client_socket.send(dmsg)
+    sys.exit(0)
+
 
 
 #main function
 if __name__=="__main__":
-        
+
+    signal.signal(signal.SIGINT, signal_handler)        
     startTime = time.time()
     init()
     result = IMUData()
@@ -178,62 +188,3 @@ if __name__=="__main__":
 
             prev_timestamp = timestamp
             time.sleep(poll_interval*1.0/1000.0)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # result = A_matrix * prev_result + B_matrix * accel
-# def odometry_x(accel, duration):
-#     global prev_result_x
-
-#     #calib accel
-#     accel = accel - offsetavg_x
-#     computed_accel = accel* 9.8
-   
-#     A_matrix = np.array([[1, duration], [0,  1]])
-#     B_matrix = np.array([[0.5*duration*duration], [duration]])
-#     result = np.matmul( A_matrix, prev_result_x ) + computed_accel * B_matrix
-
-#     prev_result_x = result
-
-#     return prev_result_x[0][0], prev_result_x[1][0], computed_accel
-
-
-
-# # result = A_matrix * prev_result + B_matrix * accel
-# def odometry_y(accel, duration):
-#     global prev_result_y
-
-#     #calib accel
-#     accel = accel - offsetavg_y
-#     computed_accel = accel* 9.8
-   
-#     A_matrix = np.array([[1, duration], [0,  1]])
-#     B_matrix = np.array([[0.5*duration*duration], [duration]])
-#     result = np.matmul( A_matrix, prev_result_y ) + computed_accel * B_matrix
-
-#     prev_result_y = result
-
-#     return prev_result_y[0][0], prev_result_y[1][0], computed_accel
