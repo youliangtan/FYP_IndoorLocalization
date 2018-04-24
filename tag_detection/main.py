@@ -411,8 +411,7 @@ def getCornersFromContour(cnt):
 
 
 def ROS_publishResults(x, y, yaw):
-    br.sendTransform((x, y, 0), tf.transformations.quaternion_from_euler(1.571,0, yaw), rospy.Time.now(), '/base_link',"/world")
-                
+    # br.sendTransform((x, y, 0), tf.transformations.quaternion_from_euler(1.571,0, yaw), rospy.Time.now(), '/base_link',"/world")
     a = Float32MultiArray()
     a.data = [x, y, yaw]
     pub.publish(a)    
