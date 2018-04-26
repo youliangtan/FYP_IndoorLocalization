@@ -10,7 +10,8 @@ import socket
 import sys
 import time
 import matplotlib.pyplot as plt
-
+import rospy
+from std_msgs.msg import Float32MultiArray
 
 #Global Var
 x_accel_list = []
@@ -19,12 +20,17 @@ yaw_list = []
 
 #host = 'localhost'
 host = '10.27.198.73' #laptop ip
-port = 8000
+port = 8800
 address = (host, port)
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(address)
 server_socket.listen(5)
+
+#ROS
+rospy.init_node('imu_publisher_node')
+pub=rospy.Publisher('imu_poseEstimation',Float32MultiArray, queue_size = 10)
+
 
 def plotGraph():
     
@@ -50,35 +56,49 @@ def plotGraph():
     del yaw_list[:]
 
 
+def storePlot(imuData):
+    global x_accel_list, y_accel_list, yaw_list
 
-while True:
-    print "\nListening for client . . ."
+    x_accel_list.append(float(imuData[0]))
+    y_accel_list.append(float(imuData[1]))
+    yaw_list.append(float(imuData[2]))
 
-    conn, address = server_socket.accept()
-    print "Connected to client at ", address
-    #pick a large output buffer size because i dont necessarily know how big the incoming packet is                                                    
 
+def ROS_publishResults(NS, EW, yaw):
+    a = Float32MultiArray()
+    a.data = [NS, EW, yaw]
+    pub.publish(a)   
+    
+
+if __name__=="__main__":
+    
     while True:
-        output = conn.recv(2048);
-        if output.strip() == "disconnect":
-            conn.close()
-            # sys.exit("Received disconnect message.  Shutting down.")
-            print "disconnect current client!"
-            print conn.close()
-            time.sleep(1)
-            plotGraph() #for plot
-            break
+        print "\nListening for client . . ."
 
-        elif output:
-            print "Message received from client:"
-            
-            #ouput received readings here!
-            print output
-            imuData  = output.split(';')
+        conn, address = server_socket.accept()
+        print "Connected to client at ", address
+        #pick a large output buffer size because i dont necessarily know how big the incoming packet is                                                    
 
-            #for plotting
-            x_accel_list.append(float(imuData[0]))
-            y_accel_list.append(float(imuData[1]))
-            yaw_list.append(float(imuData[2]))
-            
-            conn.send("ack")
+        while True:
+            output = conn.recv(2048);
+            if output.strip() == "disconnect":
+                conn.close()
+                # sys.exit("Received disconnect message.  Shutting down.")
+                print "disconnect current client!"
+                print conn.close()
+                time.sleep(1)
+                plotGraph() #for plot
+                break
+
+            elif output:
+                print "Message received from client:"
+                
+                #ouput received readings here!
+                print output
+                imuData  = output.split(';')
+
+                #for plotting
+                storePlot(imuData)
+                ROS_publishResults(float(imuData[0]), float(imuData[1]), float(imuData[2]))
+
+                conn.send("ack")

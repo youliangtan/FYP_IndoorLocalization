@@ -1,5 +1,6 @@
-# IMU YAW READING:  
-# south --> east --> north --> west --> south
+#                                                _ 
+# IMU YAW READING:                              | |____             
+# south --> east --> north --> west --> south   |______| --> imu x
 #  +pi -->  + pi/2 --> 0 --> - pi/2 --> -pi
 # **refer fusion for imu direction for reference north pointer
 
@@ -199,8 +200,8 @@ if __name__=="__main__":
             result.y_accel = raw_y*math.cos(roll) + raw_z*math.sin(roll)
 
             # compute x, y to lon lat true, north south east west direction
-            result.ns_accel = result.x_accel*math.cos(result.yaw) + result.y_accel*math.sin(result.yaw)
-            result.ew_accel = result.x_accel*math.sin(result.yaw) + result.y_accel*math.cos(result.yaw)
+            result.ns_accel = -result.x_accel*math.cos(result.yaw) - result.y_accel*math.sin(result.yaw)
+            result.ew_accel = -result.x_accel*math.sin(result.yaw) - result.y_accel*math.cos(result.yaw)
 
             #compute delta t in terms of seconds
             timestamp = data['timestamp']
