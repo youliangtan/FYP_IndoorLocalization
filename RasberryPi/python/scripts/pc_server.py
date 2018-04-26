@@ -18,8 +18,8 @@ y_accel_list = []
 yaw_list = []
 
 #host = 'localhost'
-host = '192.168.1.135' #laptop ip
-port = 8800
+host = '10.27.198.73' #laptop ip
+port = 8000
 address = (host, port)
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,12 +30,12 @@ def plotGraph():
     
     plt.figure("IMU RAW READING ")
     plt.subplot(3, 1, 1)
-    plt.title('absX- accel - t')
+    plt.title('absX/NS- accel - t')
     plt.plot(x_accel_list, 'r.:')
     plt.ylabel('accel')
 
     plt.subplot(3, 1, 2)
-    plt.title('absY- accel - t')
+    plt.title('absY/EW- accel - t')
     plt.plot(y_accel_list, 'c.:')
     plt.ylabel('accel')
 

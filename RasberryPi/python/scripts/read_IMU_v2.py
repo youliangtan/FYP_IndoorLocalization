@@ -64,7 +64,7 @@ if True:
 # =========== client _ server initialization =================
 if True:
     host = '10.27.198.73' #laptop ip
-    port = 8800
+    port = 8000
 
     print "Connecting to server"
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -141,6 +141,7 @@ def sendDataToServer(delta_t):
         
         print "To Server: ", send_data
         client_socket.send(send_data)
+        print client_socket.recv(2048)
         while client_socket.recv(2048) != "ack":
             print "Failed to connect to server!"
             print "waiting for ack"

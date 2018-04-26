@@ -3,17 +3,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Data for plotting
-t = np.arange(0.0, 2.0, 0.01)
-s = 1 + np.sin(2 * np.pi * t)
 
-# Note that using plt.subplots below is equivalent to using
-# fig = plt.figure() and then ax = fig.add_subplot(111)
-fig, ax = plt.subplots()
-ax.plot(t, s)
+size = 200
+z1 = np.random.normal(0.2,0.1,size=200)
+z2 = np.random.normal(0,0.1,size=200)
 
-ax.set(xlabel='time (s)', ylabel='voltage (mV)',
-       title='About as simple as it gets, folks')
-ax.grid()
 
-fig.savefig("test.png")
+plt.figure("IMU RAW READING ")
+plt.subplot(3, 1, 1)
+plt.title('X axis accel vs iteration (with offset)')
+plt.plot(z1, 'r.:')
+plt.ylabel('accel (ms^-2)')
+
+plt.subplot(3, 1, 2)
+plt.title('X axis accel vs iteration (without offset)')
+plt.plot(z2, 'c.:')
+plt.ylabel('accel (ms^-2)')
+
 plt.show()

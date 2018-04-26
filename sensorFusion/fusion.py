@@ -10,7 +10,10 @@
 # add feature of IMU x-y axis to world xy calib, 
 # timediff of IMU accel references
 # All code run on roslaunch
-# terminal velocity
+# create never end imu reading
+
+#reference for me youliang: http://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/
+
 
 import math
 import numpy as np
@@ -39,7 +42,7 @@ Q = 0.2**2 # process variance
 Q = np.array([[Q, 0], [0, Q]])
 R = 0.3**2 # estimate of measurement variance, change to see effect
 R = np.array([[R, 0], [0, R ]])
-terminalVel_reduction_factor = 0.8
+terminalVel_reduction_factor = 0.7
 
 ## TODO combine socket with this fusion code
 
@@ -81,7 +84,7 @@ def mytopic_callback(msg):
     cam.yaw = cam_msg[2]
     cam.timestamp = time.time()
     cam.newState = True
-    print "  Callback", cam_msg[0], cam_msg[1], cam_msg[2]
+    print "  Callback from cam!", cam_msg[0], cam_msg[1], cam_msg[2]
 
 
 def plotGraph(time, x_fusion, y_fusion):
@@ -129,7 +132,7 @@ def kalmanFusion(obj, cam_displacement, imu_accel, timestamp, state):
     # =================time update (imu dependency) ====================
     obj.xhat[1] = obj.xhat[1] * terminalVel_reduction_factor  #reduce vel every iteration
     obj.xhatminus = np.matmul( A_matrix, obj.xhat ) + imu_accel * B_matrix #equation 7
-    obj.Pminus = obj.P + Q
+    obj.Pminus = np.matmul( np.matmul(A_matrix, obj.P) , np.linalg.inv( A_matrix)) + Q    # P = A*P*A^T + Q
 
     #measurenment update from camera
     if state == True:
@@ -145,34 +148,36 @@ def kalmanFusion(obj, cam_displacement, imu_accel, timestamp, state):
 
 
 def IMUReading_server():
-    print "\n SERVER THREAD: Listening for client . . .\n\n"
-
-    conn, address = server_socket.accept()
-    print "Connected to client at ", address
-    #pick a large output buffer size because i dont necessarily know how big the incoming packet is                                                    
-
+    
     while True:
-        output = conn.recv(2048);
-        if output.strip() == "disconnect":
-            conn.close()
-            # sys.exit("Received disconnect message.  Shutting down.")
-            print "disconnect current client!"
-            print conn.close()
-            time.sleep(1)
-            break
+        print "\n SERVER THREAD: Listening for client . . .\n\n"
 
-        elif output:
-            print "Message received from client:"
-            
-            #ouput received readings here!
-            print output
-            imuData  = output.split(';')
+        conn, address = server_socket.accept()
+        print "Connected to client at ", address
+        #pick a large output buffer size because i dont necessarily know how big the incoming packet is                                                    
 
-            # terbalik according to my room transformation
-            imu.x_accel = -float(imuData[1])
-            imu.y_accel = float(imuData[0])
-            
-            conn.send("ack")
+        while True:
+            output = conn.recv(2048);
+            if output.strip() == "disconnect":
+                conn.close()
+                # sys.exit("Received disconnect message.  Shutting down.")
+                print "disconnect current client!"
+                print conn.close()
+                time.sleep(1)
+                break
+
+            elif output:
+                print "Message received from client:"
+                
+                #ouput received readings here!
+                print output
+                imuData  = output.split(';')
+
+                # terbalik according to my room transformation
+                imu.x_accel = -float(imuData[1])
+                imu.y_accel = float(imuData[0])
+                
+                conn.send("ack")
 
 
 if __name__=="__main__":
@@ -212,11 +217,22 @@ if __name__=="__main__":
 
         # print "xhat: : ", x_fusion.xhat.transpose()
         # print "zminus: ", x_fusion.z_minus.transpose()
-        print "From Main {} {} {} | {}".format(cam.x, cam.y, cam.yaw, timeFromStart)
+        # print "From Main {} {} {} | {}".format(cam.x, cam.y, cam.yaw, timeFromStart)
         
         # === publish results ===
-        plotGraph(timeFromStart, x_fusion, y_fusion)
-        # ROS_publishResults()
-        # rospy.sleep(0.05)
+        # plotGraph(timeFromStart, x_fusion, y_fusion)
+        ROS_publishResults()
+        rospy.sleep(0.05)
+
+        # pause play
+        # if ch & 0xFF == ord('p'):
+        #     print "\n\n Pause main thread and wait!!!!!!!\n\n"
+        #     time.sleep(1)
+        #     while (1):
+        #         if ch & 0xFF == ord('p'):
+        #             print "\n\n Run main thread and wait!!!!!!!\n\n"                    
+        #             break
+        #         else:
+        #             pass
 
     rospy.spin()

@@ -141,7 +141,8 @@ def main():
         # =================time update (imu dependency) ====================
         #xhatminus[k] = xhat[k-1] + vel_noise[k] + accel_noise[k] * 1/2 #equation 7
         xhatminus[k] = np.matmul( A_matrix, xhat[k-1] ) + accel_noise[k] * B_matrix #equation 7
-        Pminus[k] = P[k-1] + Q
+        # Pminus[k] = P[k-1] + Q
+        Pminus[k] = np.matmul( np.matmul(A_matrix, P[k-1]) , np.linalg.inv( A_matrix)) + Q    # P = A*P*A^T + Q
         
         # ================= measurement update ===========================
         if (k-1)%measurement_skip_rate == 0:   

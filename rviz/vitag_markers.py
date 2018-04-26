@@ -78,6 +78,8 @@ def config_NavigPath():
 def add_NagPath(NagPath, _x, _y):
     dot_point = Point()
     setattrs( dot_point , x=_x, y= _y, z=0)
+    if len(NagPath.points) >= maxNagPoints: # remove first element so not too overwhelmed!
+        del NagPath.points[0]
     NagPath.points.append (dot_point)
     return NagPath
 
@@ -95,6 +97,7 @@ if __name__=="__main__":
     yaml_obj = openYaml(yaml_path)
     VITagMarkers = create_VITagMarkers(yaml_obj, 0)
     camera_NagPath = config_NavigPath()
+    maxNagPoints = 100
 
     print "here we go!!"
     print VITagMarkers.points
