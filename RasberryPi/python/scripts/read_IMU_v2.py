@@ -153,8 +153,8 @@ def sendDataToServer(delta_t):
     else:
         # result.x_accel_sum = result.x_accel
         # result.y_accel_sum = result.y_accel
-        result.ns_accel_sum = result.ns_accel
-        result.ew_accel_sum = result.ew_accel
+        result.ns_accel_sum = result.ns_accel_sum + result.ns_accel
+        result.ew_accel_sum = result.ns_accel_sum + result.ew_accel
 
         result.count = result.count  + 1
         result.timediff = result.timediff + delta_t

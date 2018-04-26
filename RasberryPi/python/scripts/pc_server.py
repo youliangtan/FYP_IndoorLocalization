@@ -20,7 +20,7 @@ yaw_list = []
 
 #host = 'localhost'
 host = '10.27.198.73' #laptop ip
-port = 8800
+port = 8000
 address = (host, port)
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
