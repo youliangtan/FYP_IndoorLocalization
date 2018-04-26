@@ -126,19 +126,17 @@ def init():
 
 
 
-
-
 #send data from client to server in 0.1 interval (according to skip_send)
 def sendDataToServer(delta_t):
     
     if (result.count == skip_send): 
-        # x_avgAccel = result.x_accel_sum / result.count
-        # y_avgAccel = result.y_accel_sum / result.count
-        # send_data = "{};{};{};{}".format(x_avgAccel, y_avgAccel, result.yaw, result.timediff)
+        x_avgAccel = result.x_accel_sum / result.count
+        y_avgAccel = result.y_accel_sum / result.count
+        send_data = "{};{};{};{}".format(x_avgAccel, y_avgAccel, result.yaw, result.timediff)
         
         ns_avgAccel = result.ns_accel_sum / result.count
         ew_avgAccel = result.ew_accel_sum / result.count
-        send_data = "{};{};{};{}".format(ns_avgAccel, ew_avgAccel, result.yaw, result.timediff)
+        # send_data = "{};{};{};{}".format(ns_avgAccel, ew_avgAccel, result.yaw, result.timediff)
         
         print "To Server: ", send_data
         client_socket.send(send_data)
@@ -149,13 +147,20 @@ def sendDataToServer(delta_t):
             time.sleep(1)
         result.count = 0
         result.timediff = 0
+        
+        #ns ew accel
         result.ns_accel_sum = 0
         result.ew_accel_sum = 0
+        #xy accel
+        result.x_accel_sum = 0
+        result.y_accel_sum = 0
 
 
     else:
-        # result.x_accel_sum = result.x_accel
-        # result.y_accel_sum = result.y_accel
+        #xy accel
+        result.x_accel_sum = result.x_accel_sum + result.x_accel
+        result.y_accel_sum = result.x_accel_sum + result.y_accel
+        #ns ew accel
         result.ns_accel_sum = result.ns_accel_sum + result.ns_accel
         result.ew_accel_sum = result.ns_accel_sum + result.ew_accel
 
