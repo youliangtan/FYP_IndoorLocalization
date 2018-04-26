@@ -142,7 +142,7 @@ def sendDataToServer(delta_t):
         
         print "To Server: ", send_data
         client_socket.send(send_data)
-        print client_socket.recv(2048)
+
         while client_socket.recv(2048) != "ack":
             print "Failed to connect to server!"
             print "waiting for ack"
