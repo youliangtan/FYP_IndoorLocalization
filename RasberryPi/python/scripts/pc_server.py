@@ -20,7 +20,7 @@ yaw_list = []
 
 #host = 'localhost'
 host = '10.27.198.73' #laptop ip
-port = 8000
+port = 8800
 address = (host, port)
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -87,7 +87,7 @@ if __name__=="__main__":
                 print "disconnect current client!"
                 print conn.close()
                 time.sleep(1)
-                plotGraph() #for plot
+                # plotGraph() #for plot
                 break
 
             elif output:
@@ -98,7 +98,7 @@ if __name__=="__main__":
                 imuData  = output.split(';')
 
                 #for plotting
-                storePlot(imuData)
+                # storePlot(imuData)
                 ROS_publishResults(float(imuData[0]), float(imuData[1]), float(imuData[2]))
 
                 conn.send("ack")
