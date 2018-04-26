@@ -102,8 +102,8 @@ def init():
 
 
 			#TODO should compute abs x and y after compute rotational matrix
-            abs_x = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)            
-            abs_y = raw_y*math.cos(roll) + raw_z*math.sin(roll)
+            abs_x = raw_x#*math.cos(pitch) + raw_z*math.sin(pitch)            
+            abs_y = raw_y#*math.cos(roll) + raw_z*math.sin(roll)
             #print "{} {} {}".format(roll, raw_y*math.cos(roll), raw_z*math.sin(roll))   
 
             # ignore initial 2s dirty data from imu
@@ -204,8 +204,8 @@ if __name__=="__main__":
             result.yaw = data['fusionPose'][2]
 
             # compute absolute acceleration on axis parrallel to ground
-            result.x_accel = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)
-            result.y_accel = raw_y*math.cos(roll) + raw_z*math.sin(roll)
+            result.x_accel = raw_x #*math.cos(pitch) + raw_z*math.sin(pitch)
+            result.y_accel = raw_y #*math.cos(roll) + raw_z*math.sin(roll)
 
             # compute x, y to lon lat true, north south east west direction
             result.ns_accel = -result.x_accel*math.cos(result.yaw) - result.y_accel*math.sin(result.yaw)
