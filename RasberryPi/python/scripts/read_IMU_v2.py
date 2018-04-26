@@ -102,8 +102,8 @@ def init():
 
 
 			#TODO should compute abs x and y after compute rotational matrix
-            abs_x = raw_x#*math.cos(pitch) + raw_z*math.sin(pitch)            
-            abs_y = raw_y#*math.cos(roll) + raw_z*math.sin(roll)
+            abs_x = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)            
+            abs_y = raw_y*math.cos(roll) + raw_z*math.sin(roll)
             #print "{} {} {}".format(roll, raw_y*math.cos(roll), raw_z*math.sin(roll))   
 
             # ignore initial 2s dirty data from imu
@@ -159,10 +159,10 @@ def sendDataToServer(delta_t):
     else:
         #xy accel
         result.x_accel_sum = result.x_accel_sum + result.x_accel
-        result.y_accel_sum = result.x_accel_sum + result.y_accel
+        result.y_accel_sum = result.y_accel_sum + result.y_accel
         #ns ew accel
         result.ns_accel_sum = result.ns_accel_sum + result.ns_accel
-        result.ew_accel_sum = result.ns_accel_sum + result.ew_accel
+        result.ew_accel_sum = result.ew_accel_sum + result.ew_accel
 
         result.count = result.count  + 1
         result.timediff = result.timediff + delta_t
@@ -193,10 +193,6 @@ if __name__=="__main__":
         if imu.IMURead():
             #print "-------- Time stamp: {} ----------".format(time.time())
 
-            # fusion data: means remove gravity on z-axis
-            x, y, z = imu.getFusionData()
-            #print("FUSION ACCEL:\t %f %f %f" % (x,y,z))
-
             data = imu.getIMUData()
             raw_x, raw_y, raw_z = data['accel']
             pitch = data['fusionPose'][1]
@@ -204,8 +200,8 @@ if __name__=="__main__":
             result.yaw = data['fusionPose'][2]
 
             # compute absolute acceleration on axis parrallel to ground
-            result.x_accel = raw_x #*math.cos(pitch) + raw_z*math.sin(pitch)
-            result.y_accel = raw_y #*math.cos(roll) + raw_z*math.sin(roll)
+            result.x_accel = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)
+            result.y_accel = raw_y*math.cos(roll) + raw_z*math.sin(roll)
 
             # compute x, y to lon lat true, north south east west direction
             result.ns_accel = -result.x_accel*math.cos(result.yaw) - result.y_accel*math.sin(result.yaw)
