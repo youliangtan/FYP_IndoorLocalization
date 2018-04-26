@@ -149,6 +149,9 @@ def sendDataToServer(delta_t):
             time.sleep(1)
         result.count = 0
         result.timediff = 0
+        result.ns_accel_sum = 0
+        result.ew_accel_sum = 0
+
 
     else:
         # result.x_accel_sum = result.x_accel
