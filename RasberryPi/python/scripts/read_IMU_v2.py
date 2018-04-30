@@ -64,8 +64,8 @@ if True:
 
 # =========== client _ server initialization =================
 if True:
-    host = '10.27.198.73' #laptop ip
-    port = 8000
+    host = '10.27.84.150' #laptop ip
+    port = 8800
 
     print "Connecting to server"
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

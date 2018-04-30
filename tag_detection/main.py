@@ -37,7 +37,7 @@ croppedHeight = int(maxHeight*cropFactor)
 
 # others,(to be optimized)
 param1=15               #tracker
-param2=20               #tracker
+param2=30               #tracker
 areaThresh = 100        #area of the square of viTag
 circlesNum = 8          #number of circle in viTag
 yaml_obj = 0
@@ -61,7 +61,7 @@ def ini():
     global yaml_obj, width, height, cap, param1, param2
 
     #ros
-    rospy.init_node('tf_publisher_node')
+    rospy.init_node('cam_publisher_node')
     
     #webcam
     cap = cv2.VideoCapture(0)
@@ -91,7 +91,7 @@ def ini():
 
     # trackbar setup
     cv2.createTrackbar('param1','Final Output', 1, 100, Trackbar_onChange1)
-    cv2.createTrackbar('param2','Contours',1, 100, Trackbar_onChange2)
+    cv2.createTrackbar('param2','Contours',1, 300, Trackbar_onChange2)
     cv2.setTrackbarPos('param1','Final Output', param1)
     cv2.setTrackbarPos('param2','Contours', param2)
 
@@ -442,20 +442,36 @@ def main():
 
         # ----------------- create binary frame for contour detection via edge detection---------------
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        gray = cv2.bilateralFilter(gray, 11, 17, 17)
-        thresh = cv2.Canny(gray, 30, 200) # canny edge detection
+        # gray = cv2.bilateralFilter(gray, 11, 17, 17)
+        # thresh = cv2.Canny(gray, param2, 200) # canny edge detection 
+        thresh = cv2.Canny(gray, 150, 200) # canny edge detection option 2
+
+
 
         # ------------------------  Blob Detection ------------------------
         invert_frame = invert(frame)
 
         ## Detect blobs and find coor
         Blob_keypoints = detector.detect(invert_frame)
+
         # TODO can use opencv func (cv2.fitline)
         # find whether 8 coor or more of the center circles lies on the same line, return bolean 
 
         # --------------------- Contour Detection ---------------------
         _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contourIndex_list = contours_filtering(contours, hierarchy)
+
+
+        background2 = np.zeros((height, width,3), np.uint8)
+        index = -1
+        thickness = 1
+        color1 = (255, 0, 255)
+        color2 = (255, 255, 255)
+        cv2.drawContours(background2, contours, index, color1, thickness)
+
+        cv2.imshow("Raw Contours", background2)
+
+
 
         #create new contours which contists potential contours besides vitag
         newContours = list(map((lambda i: contours[i]), contourIndex_list))
@@ -525,7 +541,7 @@ def main():
         print hello_str
         
         background = drawNewContours(newContours, viTagContours, total_corners_approx)
-        cv2.imshow("Contours",background)
+        cv2.imshow("New Contours",background)
 
         cv2.imshow("Final Output", final_image)
         ch = cv2.waitKey(1)

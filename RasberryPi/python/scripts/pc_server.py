@@ -19,7 +19,7 @@ y_accel_list = []
 yaw_list = []
 
 #host = 'localhost'
-host = '10.27.198.73' #laptop ip
+host = '10.27.84.150' #laptop ip
 port = 8800
 address = (host, port)
 
@@ -64,9 +64,9 @@ def storePlot(imuData):
     yaw_list.append(float(imuData[2]))
 
 
-def ROS_publishResults(NS, EW, yaw):
+def ROS_publishResults(NS, EW, yaw, time_diff):
     a = Float32MultiArray()
-    a.data = [NS, EW, yaw]
+    a.data = [NS, EW, yaw, time_diff]
     pub.publish(a)   
     
 
@@ -99,6 +99,6 @@ if __name__=="__main__":
 
                 #for plotting
                 # storePlot(imuData)
-                ROS_publishResults(float(imuData[0]), float(imuData[1]), float(imuData[2]))
+                ROS_publishResults(float(imuData[0]), float(imuData[1]), float(imuData[2]), float(imuData[3]))
 
                 conn.send("ack")
