@@ -190,9 +190,9 @@ if __name__=="__main__":
         # print "From Main {} {} {} | {}".format(cam.x, cam.y, cam.yaw, timeFromStart)
         
         # === publish results ===
-        # plotGraph(timeFromStart, x_fusion, y_fusion)
-        ROS_publishResults()
-        rospy.sleep(0.05)
+        plotGraph(timeFromStart, x_fusion, y_fusion)
+        # ROS_publishResults()
+        # rospy.sleep(0.05)
 
         # pause play
         # if ch & 0xFF == ord('p'):

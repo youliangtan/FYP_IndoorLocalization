@@ -65,7 +65,7 @@ if True:
 # =========== client _ server initialization =================
 if True:
     host = '10.27.84.150' #laptop ip
-    port = 8800
+    port = 8000
 
     print "Connecting to server"
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -198,6 +198,10 @@ if __name__=="__main__":
             pitch = data['fusionPose'][1]
             roll = data['fusionPose'][0]
             result.yaw = data['fusionPose'][2]
+
+            # incorporate offset
+            raw_x = raw_x - offsetavg_x
+            raw_y = raw_y - offsetavg_y
 
             # compute absolute acceleration on axis parrallel to ground
             result.x_accel = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)

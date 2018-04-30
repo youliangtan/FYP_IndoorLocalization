@@ -20,7 +20,7 @@ yaw_list = []
 
 #host = 'localhost'
 host = '10.27.84.150' #laptop ip
-port = 8800
+port = 8000
 address = (host, port)
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -59,8 +59,8 @@ def plotGraph():
 def storePlot(imuData):
     global x_accel_list, y_accel_list, yaw_list
 
-    x_accel_list.append(float(imuData[0]))
-    y_accel_list.append(float(imuData[1]))
+    x_accel_list.append(float(imuData[0])*9.81)
+    y_accel_list.append(float(imuData[1])*9.81)
     yaw_list.append(float(imuData[2]))
 
 
@@ -87,7 +87,7 @@ if __name__=="__main__":
                 print "disconnect current client!"
                 print conn.close()
                 time.sleep(1)
-                # plotGraph() #for plot
+                plotGraph() #for plot
                 break
 
             elif output:
@@ -98,7 +98,7 @@ if __name__=="__main__":
                 imuData  = output.split(';')
 
                 #for plotting
-                # storePlot(imuData)
-                ROS_publishResults(float(imuData[0]), float(imuData[1]), float(imuData[2]), float(imuData[3]))
+                storePlot(imuData)
+                ROS_publishResults(float(imuData[0])*9.81, float(imuData[1])*9.81, float(imuData[2]), float(imuData[3]))
 
                 conn.send("ack")
