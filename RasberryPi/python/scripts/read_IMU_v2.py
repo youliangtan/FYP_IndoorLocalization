@@ -132,11 +132,11 @@ def sendDataToServer(delta_t):
     if (result.count == skip_send): 
         x_avgAccel = result.x_accel_sum / result.count
         y_avgAccel = result.y_accel_sum / result.count
-        send_data = "{};{};{};{}".format(x_avgAccel, y_avgAccel, result.yaw, result.timediff)
+        # send_data = "{};{};{};{}".format(x_avgAccel, y_avgAccel, result.yaw, result.timediff)
         
         ns_avgAccel = result.ns_accel_sum / result.count
         ew_avgAccel = result.ew_accel_sum / result.count
-        # send_data = "{};{};{};{}".format(ns_avgAccel, ew_avgAccel, result.yaw, result.timediff)
+        send_data = "{};{};{};{}".format(ns_avgAccel, ew_avgAccel, result.yaw, result.timediff)
         
         print "To Server: ", send_data
         client_socket.send(send_data)
