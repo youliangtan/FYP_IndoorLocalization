@@ -42,18 +42,29 @@ areaThresh = 100        #area of the square of viTag
 circlesNum = 8          #number of circle in viTag
 yaml_obj = 0
 yaml_path = "markers.yaml"
+imu_yaw = False
 
 # ============================ End Param ===================================
 
+def imu_callback(msg):
+    global imu_yaw
+    if (time.time() - startTime > 1): #wait all initialize without callback
+        imu_msg = msg.data
+        imu_yaw = -imu_msg[2] + math.pi -0.1 #+ 0.15 #adjust here accorinding to environment
+        print "  (2) Callback from IMU!", imu_yaw
+
+
 br = tf.TransformBroadcaster()
 pub=rospy.Publisher('cam_poseEstimation',Float32MultiArray, queue_size = 10)
-
+mysub = rospy.Subscriber('imu_poseEstimation', Float32MultiArray, imu_callback)
 startTime = time.time()
 
 #------------- ploting --------------
 # plt.axis([0, 50, -90, 90])
 # plt.axis([0,100,-2000,2000])
 # plt.ion()
+
+
 
 
 def ini():
@@ -300,11 +311,16 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx, co
 #  compute absolute pose of camera
 def getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo):
 
+    #incorporation of imu yaw
+    print "\nOriginal Yaw: {}, IMU Yaw {}\n".format(yaw_rad, imu_yaw)
+    if imu_yaw != False:
+        yaw_rad = imu_yaw
+
     # 2d transformation from cam to vitag
     cam_rotMatrix = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad)], [np.sin(yaw_rad),  np.cos(yaw_rad)]])
     cam_transMatrix = -np.array([[x],[z]])
-    cam_tag_transMatrix = -np.matmul(cam_rotMatrix, cam_transMatrix)
-    
+    cam_tag_transMatrix = -np.matmul(cam_rotMatrix, cam_transMatrix)    
+
     # 2d transformation from vitag to global origin
     theta = - markerinfo['yaw']
     abs_tag_rotMatrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta),  np.cos(theta)]])

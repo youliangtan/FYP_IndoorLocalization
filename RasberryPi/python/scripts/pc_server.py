@@ -87,7 +87,7 @@ if __name__=="__main__":
                 print "disconnect current client!"
                 print conn.close()
                 time.sleep(1)
-                plotGraph() #for plot
+                # plotGraph() #for plot
                 break
 
             elif output:
@@ -98,7 +98,7 @@ if __name__=="__main__":
                 imuData  = output.split(';')
 
                 #for plotting
-                storePlot(imuData)
+                # storePlot(imuData)
                 ROS_publishResults(float(imuData[0])*9.81, float(imuData[1])*9.81, float(imuData[2]), float(imuData[3]))
 
                 conn.send("ack")

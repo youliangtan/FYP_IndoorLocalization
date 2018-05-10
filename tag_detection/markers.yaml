@@ -16,8 +16,8 @@ markers:
 #  34 : {x: -10, y: 0, yaw: -0.785}  #dire 10, 0.785 both +ve
 
 #room testing 
- 729 : {x: -50, y: -50, yaw: 0}
- 1459 : {x: -100, y: -50, yaw: 0}
+# 729 : {x: -50, y: -50, yaw: 0}
+# 1459 : {x: -100, y: -50, yaw: 0}
 
 
 #lab testing 
@@ -28,7 +28,15 @@ markers:
  6 : {x: -57, y: -130, yaw: 0}
  20 : {x: -92, y: -130, yaw: 0}
 
+ 21 : {x: -131, y: -130, yaw: 0} 
+ 14 : {x: -161, y: -130, yaw: 0}
+ 24 : {x: -131, y: -130, yaw: 0}
+ 34 : {x: -161, y: -130, yaw: 0}
+
 
 #8, 45, 89  upper 7, 8(prob with 2 big circle), 4
 #17, 57, 92 lower 1,6,20
 
+# nexxt shelf
+#24
+#21 14

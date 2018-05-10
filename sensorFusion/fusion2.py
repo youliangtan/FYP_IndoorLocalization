@@ -33,7 +33,8 @@ Q = 0.2**2 # process variance
 Q = np.array([[Q, 0], [0, Q]])
 R = 0.3**2 # estimate of measurement variance, change to see effect
 R = np.array([[R, 0], [0, R ]])
-terminalVel_reduction_factor = 0.95
+terminalVel_reduction_factor = 0.8
+
 
 
 class poseEstimation:
@@ -42,7 +43,6 @@ class poseEstimation:
         self.y = 0
         self.yaw = 0
         self.timestamp = 0
-        self.newState = True #true when cam data is new
 
 class Kalman:
     def __init__(self):
@@ -53,12 +53,15 @@ class Kalman:
         self.Pminus=np.zeros( shape= (2, 2) )    # a priori error estimate
         self.z_minus=np.zeros( shape= (2, 1) )
         self.t_minus=0
+        self.camDataState = False
+
 
 class plot:
     def __init__(self):
         self.timeminus = 0
         self.x_minus = 0
         self.y_minus = 0
+        self.newCamData = False
 
 class IMUAccel:
     def __init__(self):
@@ -70,13 +73,13 @@ class IMUAccel:
 def plotGraph(time, x_fusion, y_fusion):
     plt.subplot(2, 1, 1)
     plt.title('x-displacement')
-    if cam.newState == True:
+    if plotKalman.newCamData == True:
         plt.plot(time, cam.x, 'r.', markersize=12, label = "vision")
     plt.plot([plotKalman.timeminus, time], [plotKalman.x_minus, x_fusion.xhat[0][0]], 'b-', label = "kalman") #line
     
     plt.subplot(2, 1, 2)
     plt.title('y-displacement')
-    if cam.newState == True:
+    if plotKalman.newCamData == True:
         plt.plot(time, cam.y, 'c.-', markersize=10, label = "vision")
     plt.plot([plotKalman.timeminus, time], [plotKalman.y_minus, y_fusion.xhat[0][0]], 'm-', label = "kalman") #line
 
@@ -85,16 +88,15 @@ def plotGraph(time, x_fusion, y_fusion):
     plotKalman.x_minus = x_fusion.xhat[0][0]
     plotKalman.y_minus = y_fusion.xhat[0][0]
     plotKalman.timeminus = time
-    cam.newState = False        #finsih reading, prepare for new one
+    plotKalman.newCamData = False        #finsih reading, prepare for new one
     plt.pause(0.01)
 
 
 def ROS_publishResults():
     x = x_fusion.xhat[0][0]
     y = y_fusion.xhat[0][0]
-    yaw = imu.yaw #cam.yaw
+    yaw = imu.yaw
     br.sendTransform((x, y, 0), tf.transformations.quaternion_from_euler(1.571,0, yaw), rospy.Time.now(), '/base_link',"/world")
-    cam.newState = False  
 
 
 def signal_handler(signal, frame):
@@ -102,11 +104,12 @@ def signal_handler(signal, frame):
     sys.exit(0)
 
 
-def kalmanFusion(obj, cam_displacement, imu_accel, timestamp, state):
+def kalmanFusion(obj, cam_displacement, imu_accel, timestamp):
+
+    state = obj.camDataState
 
     time_diff = timestamp - obj.t_minus
     obj.t_minus = timestamp
-    print time_diff
     A_matrix = np.array([[1, time_diff], [0,  1]])
     B_matrix = np.array([[time_diff*time_diff/2], [time_diff]])
 
@@ -118,25 +121,28 @@ def kalmanFusion(obj, cam_displacement, imu_accel, timestamp, state):
     #measurenment update from camera
     if state == True:
         # ==================== measurement update (vision) =========================
-        obj.z_minus[1] = (cam_displacement - obj.z_minus[0])/time_diff * 0.7    #update speed*with a reducing factor from camera
+        obj.z_minus[1] = (cam_displacement - obj.z_minus[0])/time_diff * 0.9    #update speed*with a reducing factor from camera
         obj.z_minus[0] = cam_displacement
         # ================= measurement update ===========================
         obj.xhat = obj.xhatminus + np.matmul(obj.K, obj.z_minus - obj.xhatminus)    #equation 18
         obj.K = np.matmul(obj.Pminus, np.linalg.inv( obj.Pminus+R ))   #equation 19
         obj.P = (1-obj.K)*obj.Pminus
+        #change state to indicate read alr
+        obj.camDataState = False
     else:
         obj.xhat = obj.xhatminus #update displacemnt profile when no measurement update
 
 
 
+
 def imu_callback(msg):
-    if (time.time() - startTime > 1): #wait all initialize without callback
+    if (time.time() - startTime > 2): #wait all initialize without callback
         imu_msg = msg.data
 
         # terbalik according to my room transformation
         imu.x_accel = imu_msg[1]
         imu.y_accel = -imu_msg[0]
-        imu.yaw = -imu_msg[2] + math.pi + 0.1 #adjust here accorinding to environment
+        imu.yaw = -imu_msg[2] + math.pi -0.1 #adjust here accorinding to environment
         imu.timeDiff = imu_msg[3]
 
         print "  (2) Callback from IMU!", imu_msg[0], imu_msg[1], imu_msg[2]
@@ -147,11 +153,16 @@ def cam_callback(msg):
     if (time.time() - startTime > 1): #wait all initialize without callback
         cam_msg = msg.data
         
-        cam.x = cam_msg[0],
+        cam.x = cam_msg[0]
         cam.y = cam_msg[1]
         cam.yaw = cam_msg[2]
         cam.timestamp = time.time()
-        cam.newState = True
+
+        #reading state
+        x_fusion.camDataState = True
+        y_fusion.camDataState = True
+        plotKalman.newCamData = True
+
         print "  (1) Callback from cam!", cam_msg[0], cam_msg[1], cam_msg[2]
 
 
@@ -171,7 +182,7 @@ if __name__=="__main__":
 
     #create call back for both subcriber
     mysub = rospy.Subscriber('cam_poseEstimation', Float32MultiArray, cam_callback)
-    mysub = rospy.Subscriber('imu_poseEstimation', Float32MultiArray, imu_callback)
+    mysub2 = rospy.Subscriber('imu_poseEstimation', Float32MultiArray, imu_callback)
     startTime = time.time()
 
     plt.figure("Odometry ")
@@ -180,19 +191,19 @@ if __name__=="__main__":
     while 1:
 
         timeFromStart = time.time() - startTime
-        cam.timestamp= time.time() #NOTE!! need to remove when integration
-        
-        kalmanFusion(x_fusion, cam.x, imu.x_accel, cam.timestamp, cam.newState)
-        kalmanFusion(y_fusion, cam.y, imu.y_accel, cam.timestamp, cam.newState)
+        cam.timestamp= time.time() #NOTE!! need to remove when integration        
+
+        kalmanFusion(x_fusion, cam.x, imu.x_accel, cam.timestamp)
+        kalmanFusion(y_fusion, cam.y, imu.y_accel, cam.timestamp)
 
         # print "xhat: : ", x_fusion.xhat.transpose()
         # print "zminus: ", x_fusion.z_minus.transpose()
         # print "From Main {} {} {} | {}".format(cam.x, cam.y, cam.yaw, timeFromStart)
         
         # === publish results ===
-        plotGraph(timeFromStart, x_fusion, y_fusion)
-        # ROS_publishResults()
-        # rospy.sleep(0.05)
+        # plotGraph(timeFromStart, x_fusion, y_fusion)
+        rospy.sleep(0.1)
+        ROS_publishResults()
 
         # pause play
         # if ch & 0xFF == ord('p'):
