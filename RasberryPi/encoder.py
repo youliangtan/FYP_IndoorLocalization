@@ -109,4 +109,4 @@ if __name__=="__main__":
     while (1):
         odomX = encoderX.getNewCount(GPIO.input(4), GPIO.input(17))
         odomY = encoderY.getNewCount(GPIO.input(14), GPIO.input(18))
-        print "encoder: ", odomX, odomY
+        # print "encoder: ", odomX, odomY
