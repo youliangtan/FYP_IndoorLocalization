@@ -19,7 +19,8 @@ x_accel_list = []
 y_accel_list = []
 yaw_list = []
 
-host = '10.27.25.107' #laptop ip
+# host = '10.27.25.107' #laptop ip
+host = '169.254.228.35'
 port = 8800
 address = (host, port)
 

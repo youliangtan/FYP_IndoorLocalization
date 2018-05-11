@@ -76,13 +76,14 @@ def sendDataToServer():
             print "waiting for ack"
             time.sleep(1)
 
-        time.sleep(0.2)
+        time.sleep(0.1)
 
 
 #ctrl-c handler
 def signal_handler(signal, frame):
     print('You pressed Ctrl+C!')
-    #send disconnect message                                                                                                                           
+    #send disconnect message
+    time.sleep(0.05)                                                                                                                           
     dmsg = "disconnect"
     print "Disconnecting then exit"
     client_socket.send(dmsg)
@@ -108,4 +109,4 @@ if __name__=="__main__":
     while (1):
         odomX = encoderX.getNewCount(GPIO.input(4), GPIO.input(17))
         odomY = encoderY.getNewCount(GPIO.input(14), GPIO.input(18))
-        # print "encoder: ", odomX, odomY
+        time.sleep(0.0003)
