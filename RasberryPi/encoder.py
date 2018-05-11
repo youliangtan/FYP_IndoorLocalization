@@ -64,7 +64,7 @@ class Pulse:
 
 
 #send data from client to server in 0.1 interval (according to skip_send)
-def sendDataToServer(x):
+def sendDataToServer():
     
     while 1:        
 
@@ -99,7 +99,7 @@ encoderY = Pulse()
 
 # Create two threads as follows
 try:
-    thread.start_new_thread( sendDataToServer, (null) )
+    thread.start_new_thread( sendDataToServer )
 except:
     print "Error: unable to start thread"   
 
