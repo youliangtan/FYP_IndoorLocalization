@@ -136,7 +136,7 @@ def sendDataToServer(delta_t):
         
         ns_avgAccel = result.ns_accel_sum / result.count
         ew_avgAccel = result.ew_accel_sum / result.count
-        send_data = "{};{};{};{}".format(ns_avgAccel, ew_avgAccel, result.yaw, result.timediff)
+        send_data = "imu;{};{};{};{}".format(ns_avgAccel, ew_avgAccel, result.yaw, result.timediff)
         
         print "To Server: ", send_data
         client_socket.send(send_data)
