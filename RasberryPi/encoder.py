@@ -6,6 +6,7 @@ import socket
 import thread
 import time
 import signal
+import sys
 
 GPIO.setmode(GPIO.BCM)
 

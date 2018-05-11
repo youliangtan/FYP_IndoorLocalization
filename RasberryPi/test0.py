@@ -1,17 +1,22 @@
-import numpy as np
-import cv2
-import RPi.GPIO as GPIO
-import smbus
+#!/usr/bin/python
 
-print "yes"
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(3, GPIO.IN)
-GPIO.setup(5, GPIO.OUT)
+import thread
+import time
 
-print smbus
+# Define a function for the thread
+def print_time( threadName, delay):
+   count = 0
+   while count < 5:
+      time.sleep(delay)
+      count += 1
+      print "%s: %s" % ( threadName, time.ctime(time.time()) )
 
-i2c = smbus.SMBus(0)
-address = 0x68
+# Create two threads as follows
+try:
+   thread.start_new_thread( print_time, ("Thread-1", 2, ) )
+   thread.start_new_thread( print_time, ("Thread-2", 4, ) )
+except:
+   print "Error: unable to start thread"
 
-test = i2c.read_byte_data(addres, 0x00)
-print test
+while 1:
+   pass
