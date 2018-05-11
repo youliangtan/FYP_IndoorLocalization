@@ -18,7 +18,7 @@ x_accel_list = []
 y_accel_list = []
 yaw_list = []
 
-host = '10.27.84.150' #laptop ip
+host = '10.27.25.107' #laptop ip
 port = 8000
 address = (host, port)
 
@@ -71,12 +71,12 @@ def ROS_publishResults(client_data):
         NS = float(client_data[1])*9.81
         EW = float(client_data[2])*9.81
         yaw = float(client_data[3])
-        time_diff = float(client_data[4]
+        time_diff = float(client_data[4])
 
         imu.data = [NS, EW, yaw, time_diff]
-        pub_imu.publish(a)   
+        pub_imu.publish(imu)   
                     
-    elif client_data[0] == "encoder"
+    elif client_data[0] == "encoder":
         encoder = Float32MultiArray()
         encoder.data = ["this", "that"]
         pub_encoder.publish()
@@ -84,8 +84,6 @@ def ROS_publishResults(client_data):
     else:
         print "Receiving Error"
                 
-    
-    
     
 
 if __name__=="__main__":

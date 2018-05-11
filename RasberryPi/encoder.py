@@ -23,7 +23,7 @@ slipFactor = 0.8
 
 # =========== client-server initialization =================
 if True:
-    host = '10.27.84.150' #laptop ip
+    host = '10.27.25.107' #laptop ip
     port = 8000
     print "Connecting to server"
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
