@@ -40,6 +40,7 @@ class Pulse:
         self.sentCount = 0
         self.dir = 1
 
+    #update new pulse and get abs count val
     def getNewCount(self, raw1, raw2):
         if raw1 == 1:
             self.state1 = 1
@@ -55,7 +56,7 @@ class Pulse:
             self.state2 = 0
 
         return self.count
-    
+
     def getSentDiff(self):
         diff = self.count - self.sentCount
         self.sentCount = self.count
@@ -65,9 +66,7 @@ class Pulse:
 
 #send data from client to server in 0.1 interval (according to skip_send)
 def sendDataToServer():
-    
     while 1:        
-
         send_data = "encoder;{};{}".format(encoderX.getSentDiff(), encoderY.getSentDiff())
         print "To Server: ", send_data
         client_socket.send(send_data)
@@ -80,6 +79,7 @@ def sendDataToServer():
         time.sleep(0.2)
 
 
+#ctrl-c handler
 def signal_handler(signal, frame):
     print('You pressed Ctrl+C!')
     #send disconnect message                                                                                                                           
@@ -99,13 +99,12 @@ encoderY = Pulse()
 
 # Create two threads as follows
 try:
-    thread.start_new_thread( sendDataToServer )
+    thread.start_new_thread( sendDataToServer, () )
 except:
     print "Error: unable to start thread"   
 
 
 if __name__=="__main__":
-
     while (1):
         odomX = encoderX.getNewCount(GPIO.input(4), GPIO.input(17))
         odomY = encoderY.getNewCount(GPIO.input(14), GPIO.input(18))
