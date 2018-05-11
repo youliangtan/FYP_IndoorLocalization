@@ -5,6 +5,7 @@ import RPi.GPIO as GPIO
 import socket
 import thread
 import time
+import signal
 
 GPIO.setmode(GPIO.BCM)
 
@@ -14,7 +15,7 @@ GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 #odomY
 GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # param
 unit = 0.00157 # m/pulse count 
@@ -24,7 +25,7 @@ slipFactor = 0.8
 # =========== client-server initialization =================
 if True:
     host = '10.27.25.107' #laptop ip
-    port = 8000
+    port = 8800
     print "Connecting to server"
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
@@ -75,8 +76,21 @@ def sendDataToServer(x):
             print "waiting for ack"
             time.sleep(1)
 
-        time.sleep(0.1)
+        time.sleep(0.2)
 
+
+def signal_handler(signal, frame):
+    print('You pressed Ctrl+C!')
+    #send disconnect message                                                                                                                           
+    dmsg = "disconnect"
+    print "Disconnecting then exit"
+    client_socket.send(dmsg)
+    sys.exit(0)
+
+
+
+#main function
+signal.signal(signal.SIGINT, signal_handler)       
 
 # ini encoder
 encoderX = Pulse()
@@ -93,5 +107,5 @@ if __name__=="__main__":
 
     while (1):
         odomX = encoderX.getNewCount(GPIO.input(4), GPIO.input(17))
-        odomY = encoderY.getNewCount(GPIO.input(14), GPIO.input(15))
+        odomY = encoderY.getNewCount(GPIO.input(14), GPIO.input(18))
         print "encoder: ", odomX, odomY

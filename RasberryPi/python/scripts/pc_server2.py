@@ -12,6 +12,7 @@ import time
 import matplotlib.pyplot as plt
 import rospy
 from std_msgs.msg import Float32MultiArray
+import signal
 
 #Global Var
 x_accel_list = []
@@ -19,7 +20,7 @@ y_accel_list = []
 yaw_list = []
 
 host = '10.27.25.107' #laptop ip
-port = 8000
+port = 8800
 address = (host, port)
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
