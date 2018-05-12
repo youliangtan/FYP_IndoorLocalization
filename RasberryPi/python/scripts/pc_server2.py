@@ -1,3 +1,5 @@
+# pc server 2 incorporated both IMU and encoder
+
     #       ___     MODEL: IMU L3GD20
     #      /00/|                
     #     /0O/ |                  y-axis 
@@ -13,6 +15,8 @@ import matplotlib.pyplot as plt
 import rospy
 from std_msgs.msg import Float32MultiArray
 import signal
+import threading
+
 
 #Global Var
 x_accel_list = []
@@ -20,18 +24,17 @@ y_accel_list = []
 yaw_list = []
 
 # host = '10.27.25.107' #laptop ip
-host = '169.254.228.35'
-port = 8800
-address = (host, port)
-
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(address)
-server_socket.listen(5)
+host = '10.27.25.107'#'169.254.228.35'
+port1 = 8000
+port2 = port1 + 100 
+address1 = (host, port1)
+address2 = (host, port2)
 
 #ROS
 rospy.init_node('imu_publisher_node')
 pub_imu=rospy.Publisher('imu_poseEstimation',Float32MultiArray, queue_size = 10)
 pub_encoder=rospy.Publisher('encoder_poseEstimation',Float32MultiArray, queue_size = 10)
+
 
 
 def plotGraph():
@@ -66,35 +69,37 @@ def storePlot(imuData):
     yaw_list.append(float(imuData[2]))
 
 
-def ROS_publishResults(client_data):
+def ROS_publishResults_IMU(client_data):
+    imu = Float32MultiArray()
+    NS = float(client_data[1])*9.81
+    EW = float(client_data[2])*9.81
+    yaw = float(client_data[3])
+    time_diff = float(client_data[4])
 
-    if client_data[0] == "imu":
-        imu = Float32MultiArray()
-        NS = float(client_data[1])*9.81
-        EW = float(client_data[2])*9.81
-        yaw = float(client_data[3])
-        time_diff = float(client_data[4])
+    imu.data = [NS, EW, yaw, time_diff]
+    pub_imu.publish(imu)   
 
-        imu.data = [NS, EW, yaw, time_diff]
-        pub_imu.publish(imu)   
-                    
-    elif client_data[0] == "encoder":
-        encoder = Float32MultiArray()
-        encoder.data = ["this", "that"]
-        pub_encoder.publish()
 
-    else:
-        print "Receiving Error"
-                
+def ROS_publishResults_encoder(client_data):
+    encoder = Float32MultiArray()
+    encoder.data = [client_data[1], client_data[2]]
+    pub_encoder.publish()
+
+
+def serverThread(address, source):
+    #ini server
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(address)
+    server_socket.listen(5)
     
+    isIMU = True if source == '(imu)' else False
+    time.sleep(1)
 
-if __name__=="__main__":
-    
     while True:
-        print "\nListening for client . . ."
-
+        print "\n{:5} Listening for client... {}".format(source, address)
+        
         conn, address = server_socket.accept()
-        print "Connected to client at ", address
+        print source, "{:5} Connected to client at {}",format(source, address)
         #pick a large output buffer size because i dont necessarily know how big the incoming packet is                                                    
 
         while True:
@@ -102,7 +107,7 @@ if __name__=="__main__":
             if output.strip() == "disconnect":
                 conn.close()
                 # sys.exit("Received disconnect message.  Shutting down.")
-                print "disconnect current client!"
+                print "{:5} disconnect current client!".format(source)
                 print conn.close()
                 time.sleep(1)
                 # plotGraph() #for plot
@@ -110,13 +115,26 @@ if __name__=="__main__":
 
             elif output:
                 print "Message received from client:"
+                print output
 
                 #ouput received readings here!
-                print output
-                ROS_publishResults( output.split(';') )
+                if isIMU == True:
+                    ROS_publishResults_IMU( output.split(';') )
+                else:
+                    ROS_publishResults_encoder( output.split(';') )
                     
                 #for plotting
                 # storePlot(imuData)
 
-
                 conn.send("ack")
+
+
+if __name__=="__main__":
+    imuThread = threading.Thread(name='imu', args = (address1, '(imu)'), target= serverThread)
+    encoderThread = threading.Thread(name='encoder', args = (address2, '(encoder)'), target= serverThread)
+    
+    imuThread.start()
+    encoderThread.start()    
+    imuThread.join()
+    encoderThread.join()
+    

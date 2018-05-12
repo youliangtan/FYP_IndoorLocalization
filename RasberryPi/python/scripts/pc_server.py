@@ -64,7 +64,8 @@ def storePlot(imuData):
     yaw_list.append(float(imuData[2]))
 
 
-def ROS_publishResults(NS, EW, yaw, time_diff):
+def ROS_publishResults(NS, EW, yaw, time_diff):    isIMU = True if source == '(imu)' else False
+
     a = Float32MultiArray()
     a.data = [NS, EW, yaw, time_diff]
     pub.publish(a)   
@@ -99,6 +100,6 @@ if __name__=="__main__":
 
                 #for plotting
                 # storePlot(imuData)
-                ROS_publishResults(float(imuData[1])*9.81, float(imuData[2])*9.81, float(imuData[3]), float(imuData[4]))
+                ROS_publishResults(float(imuData[0])*9.81, float(imuData[2])*9.81, float(imuData[3]), float(imuData[4]))
 
                 conn.send("ack")
