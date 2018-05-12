@@ -83,7 +83,7 @@ def ROS_publishResults_IMU(client_data):
 def ROS_publishResults_encoder(client_data):
     encoder = Float32MultiArray()
     encoder.data = [client_data[1], client_data[2]]
-    pub_encoder.publish()
+    pub_encoder.publish(encoder)
 
 
 def serverThread(address, source):
@@ -99,7 +99,7 @@ def serverThread(address, source):
         print "\n{:5} Listening for client... {}".format(source, address)
         
         conn, address = server_socket.accept()
-        print source, "{:5} Connected to client at {}",format(source, address)
+        print source, "{:5} Connected to client",format(source)
         #pick a large output buffer size because i dont necessarily know how big the incoming packet is                                                    
 
         while True:

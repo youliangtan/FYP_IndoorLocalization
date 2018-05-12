@@ -64,7 +64,7 @@ if True:
 
 # =========== client _ server initialization =================
 if True:
-    host = '10.27.84.150' #laptop ip
+    host = '10.27.25.107' #laptop ip
     port = 8000
 
     print "Connecting to server"
