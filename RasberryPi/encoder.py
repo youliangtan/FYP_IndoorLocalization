@@ -7,6 +7,7 @@ import thread
 import time
 import signal
 import sys
+import errno
 
 GPIO.setmode(GPIO.BCM)
 
@@ -28,8 +29,15 @@ if True:
     host = '10.27.25.107'#'169.254.228.35' #laptop ip
     port = 8100
     print "Connecting to server"
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
+    try:
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((host, port))
+    except errno.ECONNREFUSED:
+        port = 5100
+        "change port to {}".format(port)
+        print "Connecting to server again"
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((host, port))      
 
 
 class Pulse:

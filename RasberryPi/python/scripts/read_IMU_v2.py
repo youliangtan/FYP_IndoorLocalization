@@ -17,6 +17,8 @@ import time
 import math
 import socket
 import signal
+import errno
+
 
 # ========= global variables =================
 prev_timestamp = time.time()*1000000
@@ -68,9 +70,15 @@ if True:
     port = 8000
 
     print "Connecting to server"
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
-
+    try:
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((host, port))
+    except errno.ECONNREFUSED:
+        port = 5000
+        "change port to {}".format(port)
+        print "Connecting to server again"
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((host, port))        
 
 
 #initialization
@@ -212,7 +220,8 @@ if __name__=="__main__":
             result.ew_accel = -result.x_accel*math.sin(result.yaw) - result.y_accel*math.cos(result.yaw)
 
             #compute delta t in terms of seconds
-            timestamp = data['timestamp']
+            timestamp = datimport errno
+a['timestamp']
             delta_t =  timestamp - prev_timestamp
             delta_t = float(delta_t)/1000000    #0.01s interval 100hz
 

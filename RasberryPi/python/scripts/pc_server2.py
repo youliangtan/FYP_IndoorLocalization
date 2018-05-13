@@ -26,6 +26,8 @@ eX_list = []
 eY_list = []
 odomX_list = [0]
 odomY_list = [0]
+odomNS_list = [0]
+odomEW_list = [0]
 yaw_list = []
 
 # host = '10.27.25.107' #laptop ip
@@ -79,22 +81,22 @@ def plotGraph_imu():
 def plotGraph_encoder():
     # === figure 1 ====
     plt.figure("Encoder RAW READING ")
-    plt.subplot(2, 1, 1)
+    plt.subplot(4, 1, 1)
     plt.title('encoder X - t')
     plt.plot(eX_list, 'r.:')
     plt.ylabel('displacement')
 
-    plt.subplot(2, 1, 2)
+    plt.subplot(4, 1, 2)
     plt.title('encoder Y - t')
     plt.plot(eY_list, 'c.:')
     plt.ylabel('displacement')
 
-    plt.subplot(2, 1, 3)
+    plt.subplot(4, 1, 3)
     plt.title('yaw - t')
     plt.plot(yaw_list, 'r.:')
     plt.ylabel('yaw angle')
     
-    plt.subplot(2, 1, 4)
+    plt.subplot(4, 1, 4)
     plt.title('odometry XY - t')
     plt.plot(odomX_list, 'b.:')
     plt.ylabel('meter')
@@ -103,16 +105,22 @@ def plotGraph_encoder():
 
     # === figure 2 ====
     plt.figure("Encoder Odometry 2D Map")
-    plt.title('location')
-    plt.plot(odomX_list, odomY_list, 'ro')
+    plt.subplot(2, 1, 1)
+    plt.title('XY location')
+    plt.plot(odomNS_list, odomEW_list, 'ro')
     plt.axis([-3, 3, -3, 3])
 
+    plt.subplot(2, 1, 1)
+    plt.title('NSEW location')
+    
     plt.show()
 
     del eX_list[:] #empty list
     del eY_list[:]
-    del odomX_list[:]
-    del odomY_list[:]
+    odomX_list = [0]
+    odomY_list = [0]
+    odomNS_list = [0]
+    odomEW_list = [0]
     del yaw_list[:]
 
     
@@ -132,6 +140,8 @@ def storePlot_encoder():
     eY_list.append(data.encoderY)
     odomX_list.append( odomX_list[len(odomX_list) -1 ] + data.encoderX )
     odomY_list.append( odomY_list[len(odomY_list) -1 ] + data.encoderY )
+    odomNS_list.append( odomNS_list[len(odomNS_list) -1 ] + data.encoder_NS )
+    odomEW_list.append( odomEW_list[len(odomEW_list) -1 ] + data.encoder_EW )
     
     yaw_list.append(data.yaw)
 
@@ -143,7 +153,7 @@ def encoder_frameTransformation():
     y = data.encoderY
 
     platform_rotMatrix = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad)], [np.sin(yaw_rad),  np.cos(yaw_rad)]])
-    platform_transMatrix = -np.array([[x],[z]])
+    platform_transMatrix = -np.array([[x],[y]])
     NSEW_transMatrix = -np.matmul(platform_rotMatrix, platform_transMatrix)    
     data.encoder_NS = NSEW_transMatrix[0]
     data.encoder_EW = NSEW_transMatrix[1]
@@ -166,7 +176,7 @@ def ROS_publishResults_encoder(client_data):
     data.encoderY = float(client_data[2])
     
     #transfrom frame from xy to nsew
-    # encoder_frameTransformation()
+    encoder_frameTransformation()
     
     encoder.data = [data.encoderX, data.encoderY]
     pub_encoder.publish(encoder)

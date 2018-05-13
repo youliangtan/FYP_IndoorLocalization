@@ -16,7 +16,15 @@ plt.figure("Encoder Odometry")
 # plt.plot(odomY_list, 'm.:')
 
 plt.title('odom XY - t')
-# plt.plot(x_list2, 'b.:')
+
+plt.subplot(2, 1, 1)
+plt.title('odom XY - t')
+plt.plot(x_list, 'b.:')
+plt.ylabel('meter')
+
+
+plt.subplot(2, 1, 2)
+plt.plot(x_list2, 'b.:')
 plt.plot([1,2,3,4,5,6,7], [1,2,3,4,3,2,1], 'ro')
 plt.axis([0, 10, 0, 10])
 plt.show()
