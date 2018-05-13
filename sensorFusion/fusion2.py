@@ -16,6 +16,8 @@
 
 
 #fusion1: 3 threads which one with 2 ROS subscriber 1 one publisher
+#fusion2: 2 callbacks and 1 main
+#fusion3: 3 callbacks and 1 main 
 
 
 import math

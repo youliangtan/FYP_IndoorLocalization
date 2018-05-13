@@ -21,6 +21,8 @@ import threading
 #Global Var
 x_accel_list = []
 y_accel_list = []
+eX_list = []
+eY_list = []
 yaw_list = []
 
 # host = '10.27.25.107' #laptop ip
@@ -37,7 +39,7 @@ pub_encoder=rospy.Publisher('encoder_poseEstimation',Float32MultiArray, queue_si
 
 
 
-def plotGraph():
+def plotGraph_imu():
     
     plt.figure("IMU RAW READING ")
     plt.subplot(3, 1, 1)
@@ -61,12 +63,35 @@ def plotGraph():
     del yaw_list[:]
 
 
-def storePlot(imuData):
+def plotGraph_encoder():
+    plt.figure("Encoder RAW READING ")
+    plt.subplot(3, 1, 1)
+    plt.title('encoder X - t')
+    plt.plot(eX_list, 'r.:')
+    plt.ylabel('displacement')
+
+    plt.subplot(3, 1, 2)
+    plt.title('encoder Y - t')
+    plt.plot(eY_list, 'c.:')
+    plt.ylabel('displacement')
+
+    plt.show()
+    del eX_list[:] #empty list
+    del eY_list[:]
+    
+
+def storePlot_imu(imuData):
     global x_accel_list, y_accel_list, yaw_list
 
-    x_accel_list.append(float(imuData[0])*9.81)
-    y_accel_list.append(float(imuData[1])*9.81)
-    yaw_list.append(float(imuData[2]))
+    x_accel_list.append(float(imuData[1])*9.81)
+    y_accel_list.append(float(imuData[2])*9.81)
+    yaw_list.append(float(imuData[3]))
+
+
+def storePlot_encoder(encoderData):
+    global eX, eY
+    eX_list.append(float(encoderData[1]))
+    eY_list.append(float(encoderData[1]))
 
 
 def ROS_publishResults_IMU(client_data):
@@ -82,7 +107,9 @@ def ROS_publishResults_IMU(client_data):
 
 def ROS_publishResults_encoder(client_data):
     encoder = Float32MultiArray()
-    encoder.data = [client_data[1], client_data[2]]
+    odomX = float(client_data[1])
+    odomY = float(client_data[2])
+    encoder.data = [odomX, odomY]
     pub_encoder.publish(encoder)
 
 
@@ -110,12 +137,12 @@ def serverThread(address, source):
                 print "{:5} disconnect current client!".format(source)
                 print conn.close()
                 time.sleep(1)
-                # plotGraph() #for plot
+                # plotGraph_imu() #for plot
+                plotGraph_encoder()
                 break
 
             elif output:
-                print "Message received from client:"
-                print output
+                print "Message received", output
 
                 #ouput received readings here!
                 if isIMU == True:
@@ -124,7 +151,11 @@ def serverThread(address, source):
                     ROS_publishResults_encoder( output.split(';') )
                     
                 #for plotting
-                # storePlot(imuData)
+                if isIMU == True:
+                    # storePlot_imu( output.split(';') )
+                    pass
+                else:
+                    storePlot_encoder( output.split(';') )
 
                 conn.send("ack")
 

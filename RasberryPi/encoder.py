@@ -20,7 +20,7 @@ GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # param
 unit = 0.00157 # m/pulse count 
-slipFactor = 0.8
+slipFactor = 1.1
 
 
 # =========== client-server initialization =================
@@ -52,7 +52,7 @@ class Pulse:
             self.state2 = 1
 
         if (self.state2 and raw2 == 0):
-            self.count = self.count + self.dirdisconnect
+            self.count = self.count + self.dir
             self.state2 = 0
 
         return self.count
@@ -109,4 +109,4 @@ if __name__=="__main__":
     while (1):
         odomX = encoderX.getNewCount(GPIO.input(14), GPIO.input(18))
         odomY = encoderY.getNewCount(GPIO.input(4), GPIO.input(17))
-        time.sleep(0.0003)
+        time.sleep(0.0006)

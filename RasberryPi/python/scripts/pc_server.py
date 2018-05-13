@@ -59,9 +59,9 @@ def plotGraph():
 def storePlot(imuData):
     global x_accel_list, y_accel_list, yaw_list
 
-    x_accel_list.append(float(imuData[0])*9.81)
-    y_accel_list.append(float(imuData[1])*9.81)
-    yaw_list.append(float(imuData[2]))
+    x_accel_list.append(float(imuData[1])*9.81)
+    y_accel_list.append(float(imuData[2])*9.81)
+    yaw_list.append(float(imuData[3]))
 
 
 def ROS_publishResults(NS, EW, yaw, time_diff):    isIMU = True if source == '(imu)' else False
