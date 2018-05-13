@@ -35,7 +35,7 @@ imu2platform_Rot = math.pi/4
 
 # host = '10.27.25.107' #laptop ip
 host = '10.27.25.107'#'169.254.228.35'
-port1 = 5000
+port1 = 8000
 port2 = port1 + 100 
 address1 = (host, port1)
 address2 = (host, port2)
