@@ -7,7 +7,7 @@ import thread
 import time
 import signal
 import sys
-import errno
+from socket import error as socket_error
 
 GPIO.setmode(GPIO.BCM)
 
@@ -34,7 +34,7 @@ if True:
         client_socket.connect((host, port))
     except socket_error as serr:
         port = 5100
-        "change port to {}".format(port)
+        print "change port to {}".format(port)
         print "Connecting to server again"
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((host, port))      
