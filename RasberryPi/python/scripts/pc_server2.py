@@ -85,26 +85,33 @@ def plotGraph_encoder():
     global eX_list, eY_list, odomNS_list, odomEW_list, odomX_list, odomY_list, yaw_list
     # === figure 1 ====
     plt.figure("Encoder RAW READING ")
-    plt.subplot(4, 1, 1)
+    plt.subplot(5, 1, 1)
     plt.title('encoder X - t')
     plt.plot(eX_list, 'r.:')
     plt.ylabel('displacement')
 
-    plt.subplot(4, 1, 2)
+    plt.subplot(5, 1, 2)
     plt.title('encoder Y - t')
     plt.plot(eY_list, 'c.:')
     plt.ylabel('displacement')
 
-    plt.subplot(4, 1, 3)
+    plt.subplot(5, 1, 3)
     plt.title('yaw - t')
     plt.plot(yaw_list, 'r.:')
     plt.ylabel('yaw angle')
     
-    plt.subplot(4, 1, 4)
+    plt.subplot(5, 1, 4)
     plt.title('odometry XY - t')
     plt.plot(odomX_list, 'b.:')
     plt.ylabel('meter')
     plt.plot(odomY_list, 'm.:')
+
+    plt.subplot(5, 1, 5)
+    plt.title('NSEW location')
+    # plt.axis([-3, 3, -3, 3])
+    plt.plot(odomNS_list, 'b.:')
+    plt.plot(odomEW_list, 'm.:')
+
 
 
     # === figure 2 ====
@@ -113,11 +120,11 @@ def plotGraph_encoder():
     plt.title('XY location')
     plt.plot(odomX_list, odomY_list, 'ro')
     # plt.axis([-1.5, 1.5, -1.5, 1.5])
-    plt.axis([-3, 3, -3, 3])
+    # plt.axis([-3, 3, -3, 3])
 
     plt.subplot(2, 1, 2)
     plt.title('NSEW location')
-    plt.axis([-3, 3, -3, 3])
+    # plt.axis([-3, 3, -3, 3])
     plt.plot(odomNS_list, odomEW_list, 'bo')
     
     plt.show()
@@ -218,7 +225,7 @@ def serverThread(address, source):
                 print conn.close()
                 time.sleep(1)
                 # plotGraph_imu() #for plot
-                if isIMU != True: plotGraph_encoder()
+                # if isIMU != True: plotGraph_encoder()
                 break
 
             elif output:
@@ -235,8 +242,8 @@ def serverThread(address, source):
                     # storePlot_imu()
                     pass
                 else:
-                    storePlot_encoder()
-
+                    # storePlot_encoder()
+                    pass
                 conn.send("ack")
 
 

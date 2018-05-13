@@ -11,14 +11,14 @@ from socket import error as socket_error
 
 GPIO.setmode(GPIO.BCM)
 
-
 #odomX
+GPIO.setup(4, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+#odomY
 GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-#odomY
-GPIO.setup(4, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # param
 unit = 0.00157 # m/pulse count 
@@ -116,6 +116,6 @@ except:
 
 if __name__=="__main__":
     while (1):
-        odomX = encoderX.getNewCount(GPIO.input(4), GPIO.input(17))
-        odomY = encoderY.getNewCount(GPIO.input(14), GPIO.input(18))
+        odomX = encoderX.getNewCount(GPIO.input(14), GPIO.input(18))
+        odomY = encoderY.getNewCount(GPIO.input(4), GPIO.input(17))
         time.sleep(0.0006)
