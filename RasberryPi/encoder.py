@@ -32,7 +32,7 @@ if True:
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((host, port))
-    except errno.ECONNREFUSED:
+    except socket_error as serr:
         port = 5100
         "change port to {}".format(port)
         print "Connecting to server again"

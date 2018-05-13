@@ -17,9 +17,9 @@ from std_msgs.msg import Float32MultiArray
 import signal
 import threading
 import numpy as np
+import math
 
-
-#Global Var
+#Global Var for plotting
 x_accel_list = []
 y_accel_list = []
 eX_list = []
@@ -30,9 +30,12 @@ odomNS_list = [0]
 odomEW_list = [0]
 yaw_list = []
 
+# param
+imu2platform_Rot = math.pi/4
+
 # host = '10.27.25.107' #laptop ip
 host = '10.27.25.107'#'169.254.228.35'
-port1 = 8000
+port1 = 5000
 port2 = port1 + 100 
 address1 = (host, port1)
 address2 = (host, port2)
@@ -79,6 +82,7 @@ def plotGraph_imu():
 
 
 def plotGraph_encoder():
+    global eX_list, eY_list, odomNS_list, odomEW_list, odomX_list, odomY_list, yaw_list
     # === figure 1 ====
     plt.figure("Encoder RAW READING ")
     plt.subplot(4, 1, 1)
@@ -107,11 +111,14 @@ def plotGraph_encoder():
     plt.figure("Encoder Odometry 2D Map")
     plt.subplot(2, 1, 1)
     plt.title('XY location')
-    plt.plot(odomNS_list, odomEW_list, 'ro')
+    plt.plot(odomX_list, odomY_list, 'ro')
+    # plt.axis([-1.5, 1.5, -1.5, 1.5])
     plt.axis([-3, 3, -3, 3])
 
-    plt.subplot(2, 1, 1)
+    plt.subplot(2, 1, 2)
     plt.title('NSEW location')
+    plt.axis([-3, 3, -3, 3])
+    plt.plot(odomNS_list, odomEW_list, 'bo')
     
     plt.show()
 
@@ -134,12 +141,16 @@ def storePlot_imu():
 
 
 def storePlot_encoder():
-    global eX_list, eY_list, odomX_list, odomY_list, yaw_list
-
+    global eX_list, eY_list, odomNS_list, odomEW_list, odomX_list, odomY_list, yaw_list
+    
     eX_list.append(data.encoderX)
     eY_list.append(data.encoderY)
     odomX_list.append( odomX_list[len(odomX_list) -1 ] + data.encoderX )
     odomY_list.append( odomY_list[len(odomY_list) -1 ] + data.encoderY )
+    print "NS!!!!!!:", odomNS_list[len(odomNS_list) -1 ] + data.encoder_NS 
+    print "EW!!!!!!", odomEW_list[len(odomEW_list) -1 ] + data.encoder_EW
+    print "yaw", data.yaw
+
     odomNS_list.append( odomNS_list[len(odomNS_list) -1 ] + data.encoder_NS )
     odomEW_list.append( odomEW_list[len(odomEW_list) -1 ] + data.encoder_EW )
     
@@ -148,7 +159,7 @@ def storePlot_encoder():
 
 # 2d transformation from platfrom XY to NSEW
 def encoder_frameTransformation():
-    yaw_rad = data.yaw
+    yaw_rad = data.yaw 
     x = data.encoderX
     y = data.encoderY
 
@@ -163,7 +174,7 @@ def ROS_publishResults_IMU(client_data):
     imu = Float32MultiArray()
     data.imu_NS = float(client_data[1])*9.81
     data.imu_EW = float(client_data[2])*9.81
-    data.yaw = float(client_data[3])
+    data.yaw = float(client_data[3]) + imu2platform_Rot 
     data.time_diff = float(client_data[4])
 
     imu.data = [data.imu_NS, data.imu_EW, data.yaw, data.time_diff]
@@ -211,7 +222,7 @@ def serverThread(address, source):
                 break
 
             elif output:
-                print "Message received", output
+                # print "Message received", output
 
                 #ouput received readings here!
                 if isIMU == True:
