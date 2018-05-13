@@ -220,8 +220,7 @@ if __name__=="__main__":
             result.ew_accel = -result.x_accel*math.sin(result.yaw) - result.y_accel*math.cos(result.yaw)
 
             #compute delta t in terms of seconds
-            timestamp = datimport errno
-a['timestamp']
+            timestamp = data['timestamp']
             delta_t =  timestamp - prev_timestamp
             delta_t = float(delta_t)/1000000    #0.01s interval 100hz
 
