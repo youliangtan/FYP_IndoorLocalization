@@ -76,7 +76,7 @@ if True:
         client_socket.connect((host, port))
     except socket_error as serr:
         port = 5000
-        "change port to {}".format(port)
+        print "change port to {}".format(port)
         print "Connecting to server again"
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((host, port))        
@@ -206,7 +206,11 @@ if __name__=="__main__":
             raw_x, raw_y, raw_z = data['accel']
             pitch = data['fusionPose'][1]
             roll = data['fusionPose'][0]
-            result.yaw = data['fusionPose'][2]
+    
+            # reallign yaw angle
+            result.yaw = - data['fusionPose'][2] #anticlockwise is +ve dir
+            # if result.yaw < 0:                  #before is -pi to pi, let it be 0 -> 2pi 
+                # result.yaw = result.yar
 
             # incorporate offset
             raw_x = raw_x - offsetavg_x
@@ -216,6 +220,7 @@ if __name__=="__main__":
             result.x_accel = raw_x*math.cos(pitch) + raw_z*math.sin(pitch)
             result.y_accel = raw_y*math.cos(roll) + raw_z*math.sin(roll)
 
+            # ERRORRR!!!! need to check yaw angle!!!!!!!!!!!!!!!
             # compute x, y to lon lat true, north south east west direction
             result.ns_accel = -result.x_accel*math.cos(result.yaw) - result.y_accel*math.sin(result.yaw)
             result.ew_accel = -result.x_accel*math.sin(result.yaw) - result.y_accel*math.cos(result.yaw)

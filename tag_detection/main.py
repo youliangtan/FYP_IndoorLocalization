@@ -50,7 +50,7 @@ def imu_callback(msg):
     global imu_yaw
     if (time.time() - startTime > 1): #wait all initialize without callback
         imu_msg = msg.data
-        imu_yaw = -imu_msg[2] + math.pi -0.1 #+ 0.15 #adjust here accorinding to environment
+        imu_yaw = imu_msg[2] #+ math.pi -0.1 #+ 0.15 #adjust here accorinding to environment
         print "  (2) Callback from IMU!", imu_yaw
 
 
@@ -79,7 +79,8 @@ def ini():
     width = int(cap.get(3))
     height = int(cap.get(4))
 
-    #open yaml file
+    #open yaml fileimport numpy as np
+
     print yaml_path
     with open(yaml_path, 'r') as stream:
         # check first line to ensure format

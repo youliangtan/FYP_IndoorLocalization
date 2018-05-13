@@ -31,11 +31,11 @@ odomEW_list = [0]
 yaw_list = []
 
 # param
-imu2platform_Rot = math.pi/4
+imu2platform_Rot = -math.pi/2
 
 # host = '10.27.25.107' #laptop ip
 host = '10.27.25.107'#'169.254.228.35'
-port1 = 8000
+port1 = 5000
 port2 = port1 + 100 
 address1 = (host, port1)
 address2 = (host, port2)
@@ -225,7 +225,7 @@ def serverThread(address, source):
                 print conn.close()
                 time.sleep(1)
                 # plotGraph_imu() #for plot
-                # if isIMU != True: plotGraph_encoder()
+                if isIMU != True: plotGraph_encoder()
                 break
 
             elif output:
@@ -242,7 +242,7 @@ def serverThread(address, source):
                     # storePlot_imu()
                     pass
                 else:
-                    # storePlot_encoder()
+                    storePlot_encoder()
                     pass
                 conn.send("ack")
 
