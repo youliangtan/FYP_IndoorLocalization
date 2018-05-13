@@ -67,7 +67,7 @@ class Pulse:
 #send data from client to server in 0.1 interval (according to skip_send)
 def sendDataToServer():
     while 1:        
-        send_data = "encoder;{};{}".format(encoderX.getSentDiff(), encoderY.getSentDiff())
+        send_data = "encoder;{};{};".format(encoderX.getSentDiff(), encoderY.getSentDiff())
         print "To Server: ", send_data
         client_socket.send(send_data)
 
