@@ -41,7 +41,7 @@ _R = 0.3**2 # estimate of measurement variance, change to see effect
 R = np.array([[_R, 0], [0, _R ]])
 terminalVel_reduction_factor = 0.8
 cam2platform_Rot = 0
-yaml_path = "../tag_detection/markers.yaml"
+yaml_path = "../markers_config.yaml"
 
 
 class poseEstimation:
