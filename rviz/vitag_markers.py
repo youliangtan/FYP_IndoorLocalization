@@ -40,7 +40,9 @@ def create_VITagMarkers(yaml_obj, delta):
     box_marker.ns = "vitag_marker"
     box_marker.type = Marker.CUBE_LIST
 
-    setattrs( box_marker.scale , x=0.25, y=0.02, z=0.1)
+    # setattrs( box_marker.scale , x=0.25, y=0.02, z=0.1) #VITAG sizing
+    setattrs( box_marker.scale , x=0.35, y=0.2, z=0.1)
+
     setattrs( box_marker.color , r=0.0, g=1, b=0.2, a=1.0)
     setattrs( box_marker.pose.position , x=0.1, y=0, z=0)
     setattrs( box_marker.pose.orientation , x=0, y=0, z=0, w=1) #change orientation of yaw in z-axis
@@ -97,7 +99,7 @@ if __name__=="__main__":
     yaml_obj = openYaml(yaml_path)
     VITagMarkers = create_VITagMarkers(yaml_obj, 0)
     camera_NagPath = config_NavigPath()
-    maxNagPoints = 100
+    maxNagPoints = 400
 
     print "here we go!!"
     print VITagMarkers.points

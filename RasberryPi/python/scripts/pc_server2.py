@@ -18,6 +18,7 @@ import signal
 import threading
 import numpy as np
 import math
+import yaml
 
 #Global Var for plotting
 x_accel_list = []
@@ -31,7 +32,9 @@ odomEW_list = [0]
 yaw_list = []
 
 # param
-imu2platform_Rot = -math.pi/2
+imu2platform_Rot =  math.pi
+yaml_path = "../../../tag_detection/markers.yaml"
+world2nsew_Rot = 0
 
 # host = '10.27.25.107' #laptop ip
 host = '10.27.25.107'#'169.254.228.35'
@@ -40,6 +43,7 @@ port2 = port1 + 100
 address1 = (host, port1)
 address2 = (host, port2)
 
+encoder_factor = 0.75
 #ROS
 rospy.init_node('imu_publisher_node')
 pub_imu=rospy.Publisher('imu_poseEstimation',Float32MultiArray, queue_size = 10)
@@ -56,6 +60,24 @@ class Data:
         self.encoder_EW = 0
         self.time_diff = 0
 
+def openYamConfig():
+    global world2nsew_Rot
+
+    with open(yaml_path, 'r') as stream:
+    # check first line to ensure format
+        if (stream.readline() != "# VITAG POSITION YAML\n"):
+            print " Wrong format! Wrong Vitag position yaml file was selected!"
+            exit(0)
+        try:
+            yaml_obj = yaml.load(stream)
+            print "yaml open successfully!"
+        except yaml.YAMLError as exc:
+            print " Error in reading yaml file!"
+            print " Check the format and syntax of yaml"
+            exit(0)
+    
+    world2nsew_Rot = yaml_obj['config']['worldOrigin_2_NSWE']
+    print "config of nswe to world frame: " , world2nsew_Rot
 
 def plotGraph_imu():
     
@@ -117,14 +139,16 @@ def plotGraph_encoder():
     # === figure 2 ====
     plt.figure("Encoder Odometry 2D Map")
     plt.subplot(2, 1, 1)
-    plt.title('XY location')
+    plt.title('XY location-> before transform')
     plt.plot(odomX_list, odomY_list, 'ro')
     # plt.axis([-1.5, 1.5, -1.5, 1.5])
     # plt.axis([-3, 3, -3, 3])
 
     plt.subplot(2, 1, 2)
-    plt.title('NSEW location')
-    # plt.axis([-3, 3, -3, 3])
+    plt.title('NS-EW location ')
+    plt.xlabel('NS')
+    plt.ylabel('EW')
+    plt.axis([-3, 8, -10, 1])
     plt.plot(odomNS_list, odomEW_list, 'bo')
     
     plt.show()
@@ -166,7 +190,7 @@ def storePlot_encoder():
 
 # 2d transformation from platfrom XY to NSEW
 def encoder_frameTransformation():
-    yaw_rad = data.yaw 
+    yaw_rad = data.yaw + imu2platform_Rot  #this yaw annlge will be affected by the world2nsew_Rot from yaml config
     x = data.encoderX
     y = data.encoderY
 
@@ -181,7 +205,7 @@ def ROS_publishResults_IMU(client_data):
     imu = Float32MultiArray()
     data.imu_NS = float(client_data[1])*9.81
     data.imu_EW = float(client_data[2])*9.81
-    data.yaw = float(client_data[3]) + imu2platform_Rot 
+    data.yaw = float(client_data[3]) + world2nsew_Rot 
     data.time_diff = float(client_data[4])
 
     imu.data = [data.imu_NS, data.imu_EW, data.yaw, data.time_diff]
@@ -190,13 +214,13 @@ def ROS_publishResults_IMU(client_data):
 
 def ROS_publishResults_encoder(client_data):
     encoder = Float32MultiArray()
-    data.encoderX = float(client_data[1])
-    data.encoderY = float(client_data[2])
+    data.encoderX = float(client_data[1]) * encoder_factor
+    data.encoderY = float(client_data[2]) * encoder_factor
     
     #transfrom frame from xy to nsew
     encoder_frameTransformation()
     
-    encoder.data = [data.encoderX, data.encoderY]
+    encoder.data = [data.encoder_NS, data.encoder_EW, data.yaw] #here the ns and ew has been shift according to the yaw angle of yaw file
     pub_encoder.publish(encoder)
 
 
@@ -225,7 +249,7 @@ def serverThread(address, source):
                 print conn.close()
                 time.sleep(1)
                 # plotGraph_imu() #for plot
-                if isIMU != True: plotGraph_encoder()
+                # if isIMU != True: plotGraph_encoder()
                 break
 
             elif output:
@@ -242,12 +266,13 @@ def serverThread(address, source):
                     # storePlot_imu()
                     pass
                 else:
-                    storePlot_encoder()
+                    # storePlot_encoder()
                     pass
                 conn.send("ack")
 
 
 if __name__=="__main__":
+    openYamConfig()
     data = Data()
     imuThread = threading.Thread(name='imu', args = (address1, '(imu)'), target= serverThread)
     encoderThread = threading.Thread(name='encoder', args = (address2, '(encoder)'), target= serverThread)

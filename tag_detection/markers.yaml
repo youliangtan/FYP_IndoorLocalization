@@ -1,37 +1,32 @@
 # VITAG POSITION YAML
 description:  
-- yaml storing x, y coor and yaw of each marker 
+- yaml storing x, y coor and yaw of each marker in cm
 - all respective to origin
 - Date: 14 March 2018
 - Version: 1.0 
 
-markers:
-#  1 : {x: 10, y: 30, yaw: 1.571}
-#  2 : {x: 40, y: 30, yaw: 1.571}
-#  3 : {x: 25, y: 60, yaw: 0.785}
-#  7 : {x: 0, y: 0, yaw: 0}
-#  14 : {x: 135, y: 70, yaw: 0.785}
-#  22 : {x: 150, y: 80, yaw: 0.785}
-#  33 : {x: 180, y: 90, yaw: 0.785}
-#  34 : {x: -10, y: 0, yaw: -0.785}  #dire 10, 0.785 both +ve
+config:
+ worldOrigin_2_NSWE : -1.5 #-1.2  #angle
+ cam2platform_Rot : -1.571
 
+markers:
 #room testing 
 # 729 : {x: -50, y: -50, yaw: 0}
 # 1459 : {x: -100, y: -50, yaw: 0}
 
 
 #lab testing 
- 7 : {x: -8, y: -130, yaw: 0}
- 8 : {x: -45, y: -130, yaw: 0} 
- 4 : {x: -89, y: -130, yaw: 0}
- 1 : {x: -17, y: -130, yaw: 0} 
- 6 : {x: -57, y: -130, yaw: 0}
- 20 : {x: -92, y: -130, yaw: 0}
+#  7 : {x: -8, y: -130, yaw: 0}
+#  8 : {x: -45, y: -130, yaw: 0} 
+#  4 : {x: -89, y: -130, yaw: 0}
+#  1 : {x: -17, y: -130, yaw: 0} 
+#  6 : {x: -57, y: -130, yaw: 0}
+#  20 : {x: -92, y: -130, yaw: 0}
 
- 21 : {x: -131, y: -130, yaw: 0} 
- 14 : {x: -161, y: -130, yaw: 0}
- 24 : {x: -131, y: -130, yaw: 0}
- 34 : {x: -161, y: -130, yaw: 0}
+#  21 : {x: -131, y: -130, yaw: 0} 
+#  14 : {x: -161, y: -130, yaw: 0}
+#  24 : {x: -131, y: -130, yaw: 0}
+#  34 : {x: -161, y: -130, yaw: 0}
 
 
 #8, 45, 89  upper 7, 8(prob with 2 big circle), 4
@@ -40,3 +35,33 @@ markers:
 # nexxt shelf
 #24
 #21 14
+
+#final 2 lab testing 
+# 12 :  {x: 75, y: 170, yaw: -1.571} # clockwise
+# 9 :  {x: 75, y: 300, yaw: -1.571}
+# 109 :  {x: 120, y: 80, yaw: 0 }
+
+#Final 2 lab testing (according to sensing sequence)
+ 18 :  {x: 70, y: 0, yaw: 0} 
+ 108 :  {x: 195, y: 0, yaw: 0} 
+ 10 :  {x: 255, y: 0, yaw: 0}
+ 13 :  {x: 429, y: 0, yaw: 0}
+ 11 :  {x: 569, y: 0, yaw: 0}
+ 12 :  {x: 744, y: 0, yaw: 0} 
+ 15 :  {x: 884, y: 0, yaw: 0} 
+
+ 14 :  {x: 802, y: 170, yaw: -1.571} 
+ 17 :  {x: 802, y: 270, yaw: -1.571} 
+ 16 :  {x: 802, y: 391, yaw: -1.571} 
+ 119 :  {x: 802, y: 461, yaw: -1.571}
+ 
+ 120 :  {x: 792, y: 487, yaw: 0}
+ 19 :  {x: 739, y: 487, yaw: 0}
+ 114 :  {x: 562, y: 487, yaw: 0}
+ 2 :  {x: 492, y: 487, yaw: 0}
+ 5 :  {x: 422, y: 487, yaw: 0}
+
+ 118 :  {x: 719, y: 490, yaw: 1.571}
+ 3 :  {x: 719, y: 340, yaw: 1.571}
+ 109 :  {x: 719, y: 190, yaw: 1.571}
+

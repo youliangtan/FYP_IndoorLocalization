@@ -21,7 +21,7 @@ GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 
 # param
-unit = 0.00157 # m/pulse count 
+unit = 0.0014 # m/pulse count 
 slipFactor = 1.1
 
 

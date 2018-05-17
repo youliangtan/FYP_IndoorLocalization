@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import yaml
 import rospy
 from std_msgs.msg import String,Int32,Int32MultiArray,MultiArrayLayout,MultiArrayDimension,Float32MultiArray
-# import tf.transformations as tr
 import tf
+import sys
 
 
 # ============================ Param =========================================
@@ -43,14 +43,17 @@ circlesNum = 8          #number of circle in viTag
 yaml_obj = 0
 yaml_path = "markers.yaml"
 imu_yaw = False
+imu_callback_count = 0
+cam2platform_Rot = 0
 
 # ============================ End Param ===================================
 
 def imu_callback(msg):
-    global imu_yaw
+    global imu_yaw, imu_callback_count
     if (time.time() - startTime > 1): #wait all initialize without callback
         imu_msg = msg.data
-        imu_yaw = imu_msg[2] #+ math.pi -0.1 #+ 0.15 #adjust here accorinding to environment
+        imu_yaw = imu_msg[2] + cam2platform_Rot #adjust here accorinding to environment wait need to add TODO!!!
+        imu_callback_count = 8
         print "  (2) Callback from IMU!", imu_yaw
 
 
@@ -69,7 +72,7 @@ startTime = time.time()
 
 def ini():
     #make it global var
-    global yaml_obj, width, height, cap, param1, param2
+    global yaml_obj, width, height, cap, param1, param2, cam2platform_Rot
 
     #ros
     rospy.init_node('cam_publisher_node')
@@ -94,6 +97,7 @@ def ini():
             print " Error in reading yaml file!"
             print " Check the format and syntax of yaml"
             exit(0)
+    cam2platform_Rot = yaml_obj['config']['cam2platform_Rot']
 
     print("width and height are {} {}".format(width, height))
 
@@ -312,10 +316,12 @@ def draw_poseaxis(rotation_vector, translation_vector, centerPoints, im, idx, co
 #  compute absolute pose of camera
 def getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo):
 
+    theta = markerinfo['yaw']
+
     #incorporation of imu yaw
     print "\nOriginal Yaw: {}, IMU Yaw {}\n".format(yaw_rad, imu_yaw)
     if imu_yaw != False:
-        yaw_rad = imu_yaw
+        yaw_rad = imu_yaw - theta
 
     # 2d transformation from cam to vitag
     cam_rotMatrix = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad)], [np.sin(yaw_rad),  np.cos(yaw_rad)]])
@@ -323,7 +329,6 @@ def getMarkerAbsPose(idx, x, y, z, yaw_rad, markerinfo):
     cam_tag_transMatrix = -np.matmul(cam_rotMatrix, cam_transMatrix)    
 
     # 2d transformation from vitag to global origin
-    theta = - markerinfo['yaw']
     abs_tag_rotMatrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta),  np.cos(theta)]])
     abs_tag_transMatrix = np.array([[markerinfo['x']],[markerinfo['y']]])
     abs_cam_trans = np.matmul(abs_tag_rotMatrix, cam_tag_transMatrix) + abs_tag_transMatrix
@@ -436,6 +441,7 @@ def ROS_publishResults(x, y, yaw):
 
 # main code
 def main():
+    global imu_callback_count, imu_yaw
 
     # other setup    
     kernel = np.ones((5,5),np.uint8)
@@ -448,10 +454,12 @@ def main():
         #capture from webcam
         ret, frame = cap.read()
         frame = cv2.resize(frame,(0,0),fx=1,fy=1)
+        cv2.imshow("1",frame)
 
         # undistroted distortion from ori frame
         newcameramtx, roi=cv2.getOptimalNewCameraMatrix(cam_matrix, distortion, (width,height), 1, (width,height))
         frame = cv2.undistort(frame, cam_matrix, distortion, None, newcameramtx)
+        cv2.imshow("2",frame)
 
         # reiniialize params
         vitags_absCoor_list = []
@@ -462,7 +470,7 @@ def main():
         # gray = cv2.bilateralFilter(gray, 11, 17, 17)
         # thresh = cv2.Canny(gray, param2, 200) # canny edge detection 
         thresh = cv2.Canny(gray, 150, 200) # canny edge detection option 2
-
+        cv2.imshow("3",thresh)
 
 
         # ------------------------  Blob Detection ------------------------
@@ -485,9 +493,6 @@ def main():
         color1 = (255, 0, 255)
         color2 = (255, 255, 255)
         cv2.drawContours(background2, contours, index, color1, thickness)
-
-        cv2.imshow("Raw Contours", background2)
-
 
 
         #create new contours which contists potential contours besides vitag
@@ -532,7 +537,6 @@ def main():
                         #update list of coors and yaw
                         vitags_absCoor_list.append(abs_cam_trans)
                         vitags_absYaw_list.append(abs_yaw)
-
                     else:
                         print "invalid marker for index {}!!!".format(VitagIndex)
 
@@ -565,6 +569,14 @@ def main():
 
         if ch & 0xFF == ord('q'):
             break
+
+        time.sleep(0.05)
+
+        #if no imu_yaw, use back vision yaw
+        if imu_callback_count > 0:
+            imu_callback_count = imu_callback_count -1
+        else:
+            imu_yaw = False
 
     cap.release()
     cv2.destroyAllWindows()
