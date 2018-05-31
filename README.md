@@ -1,9 +1,12 @@
 # FYP_IndoorLocalization
-NTU final year project - Vision, encoder odometry and IMU sensor fusion Localization. Vision-based localization depends on VITag marker to identify location in world frame. ROS will be used as the main communication method between multiple nodes.
+NTU final year project - Vision, encoder odometry and IMU sensor fusion Localization. Vision-based localization depends on VITag marker to identify location in world frame. ROS will be used as the main communication method between multiple nodes. The results for this localization system is shown as below
 
 ![alt text](/documentations/fusionResultsPath.png?)
 
-Yaml file `markers_config.yaml` will store all configurations and marker coordinates details. Here 4 main ROS nodes were descripted below. 
+Video link 	: `https://drive.google.com/open?id=1gD1sk_zskcC4AYHtSumUh6on5TwFIL-Y`
+
+
+Yaml file `markers_config.yaml` will store all configurations and marker coordinates details. In the localization system, 4 main ROS nodes were descripted below: 
 
 ## 1) Vision
 OpenCV library is used to run VITag marker detection. Access vision source code by entering `cd vision_PoseEstimation`. Run python script `main.py` to start the vision pose estimation process. 
