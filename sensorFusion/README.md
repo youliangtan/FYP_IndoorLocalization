@@ -7,4 +7,4 @@
 - use ros sub and ros pub, while fusing cam and imu data together and output the kalman filtered value to user
 
 > fusion_v3.py
-- finalized fusion script. Using Encoder odometry value as kalman filter measurement update. By using encoder odometry is way better than IMU odometry, due to less driftting
+- finalized fusion script. Using Encoder odometry value as kalman filter time update. By using encoder odometry is way better than IMU odometry, due to less driftting
