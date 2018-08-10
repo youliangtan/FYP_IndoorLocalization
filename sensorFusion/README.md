@@ -1,4 +1,4 @@
-###Notes
+#Notes
 
 > Kalman_v1.py, kalman_v2.py and kalman_v3.py:
 - These 3 scripts are just for testing purpose. It will use MatPlotlib or IMU accel data for visualization of the algorithm.
