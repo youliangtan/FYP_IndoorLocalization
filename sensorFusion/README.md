@@ -1,6 +1,6 @@
 # Notes
 
-> Kalman_v1.py, kalman_v2.py and kalman_v3.py:
+> kalman_v1.py, kalman_v2.py and kalman_backup.py:
 - These 3 scripts are just for testing purpose. It will use MatPlotlib or IMU accel data for visualization of the algorithm.
 
 > fusion_v1 and fusion_v2.py:
