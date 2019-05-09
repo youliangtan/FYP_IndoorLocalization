@@ -1,8 +1,0 @@
-prefix=/home/tan/fyp_vitagDetection/catkin_ws/devel
-
-Name: youliang
-Description: Description of youliang
-Version: 0.3.0
-Cflags: 
-Libs: -L/home/tan/fyp_vitagDetection/catkin_ws/devel/lib 
-Requires: 

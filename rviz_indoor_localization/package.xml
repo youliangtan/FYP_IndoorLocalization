@@ -1,0 +1,19 @@
+<package>
+  <name>rviz_indoor_localization</name>
+  <version>0.3.0</version>
+
+  <description>This package contains a number of URDF tutorials.</description>
+  <author email="tan_you_liang@hotmail.com">YouLiang</author>
+
+  <maintainer email="tan_you_liang@hotmail.com">YouLiang</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roslaunch</build_depend>
+  <run_depend>joint_state_publisher</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>xacro</run_depend>
+
+</package>

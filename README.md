@@ -1,12 +1,18 @@
 # FYP_IndoorLocalization
+
+**DISCLAIMER**: This package is my first robotics project which involves ROS. Thus, the coding style and conventions are highly not appropriate. The end product still works quite well, but still, I keeping this as a backup!!! Pls use it on your own risk!!! =)
+
+
 NTU final year project - Vision, encoder odometry and IMU sensor fusion Localization. Vision-based localization depends on VITag marker to identify location in world frame. ROS will be used as the main communication method between multiple nodes. The results for this localization system is shown as below
+
 
 ![alt text](/documentations/fusionResultsPath.png?)
 
-Video link 	: `https://drive.google.com/open?id=1gD1sk_zskcC4AYHtSumUh6on5TwFIL-Y`
+Video link is [here](https://drive.google.com/open?id=1gD1sk_zskcC4AYHtSumUh6on5TwFIL-Y).
 
 
 Yaml file `markers_config.yaml` will store all configurations and marker coordinates details. In the localization system, 4 main ROS nodes were descripted below: 
+
 
 ## 1) Vision
 OpenCV library is used to run VITag marker detection. Access vision source code by entering `cd vision_PoseEstimation`. Run python script `main.py` to start the vision pose estimation process. 
@@ -34,10 +40,13 @@ Iddicated simulation file. Script will auto generate random inputs from "measure
 ### fusion.py
 Sensor fusion script. Will accept topic from Vision input, IMU & encoder script 
 
-## 4) RVIZ
+## 4) rviz_indoor_localization
 For visualization of localization system. `fusion.py` will publish to tf topic, which will be subscribed to visualize the robot coordinate in the world frame
 
-Use `roslaunch youliang` to run the program
+Compile `rviz_indoor_localization` to visualize the localization process, then:
+```
+roslaunch rviz_indoor_localization display.launch
+```
 
 ### markers
 `rviz_markers.py` to publish coordinates of markers, and visulize real-time robot's path in 2d Environment.
